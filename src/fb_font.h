@@ -1,0 +1,83 @@
+/* fb_font.h -- 3x5 bitmap font, copied from UOOM's generated font.
+ *
+ * fb_font_cols[] holds three column bytes per glyph; bit 0 is the top row.
+ * Look a character up in fb_font_chars[]. Uppercase, digits and a little
+ * punctuation.
+ *
+ * Two glyphs differ from the inherited font: M and N were byte-identical
+ * there, which turned BENCHMARK into BEHCHMARK on the panel. In three pixels
+ * of width the only thing that can separate M, N, H and W is where the middle
+ * column sits, so they now take the top (M), a three-row middle (N), the
+ * centre bar (H) and the bottom (W). A true diagonal (0x07/0x1C) was tried
+ * for N and read as an R, which is worse than a heavy middle -- enough for a hex dump and its ASCII column (lowercase is
+ * folded to uppercase by the caller).
+ */
+#ifndef FB_FONT_H_INCLUDED
+#define FB_FONT_H_INCLUDED
+
+#include <stdint.h>
+
+#define FB_FONT_COLS 3
+#define FB_FONT_ROWS 5
+#define FB_FONT_COUNT 53
+
+static const char fb_font_chars[] =
+    " !#%()*+,-./0123456789:<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+static const uint8_t fb_font_cols[FB_FONT_COUNT][FB_FONT_COLS] = {
+    { 0x00, 0x00, 0x00 },   /* ' ' */
+    { 0x00, 0x17, 0x00 },   /* '!' */
+    { 0x1F, 0x0A, 0x1F },   /* '#' */
+    { 0x19, 0x04, 0x13 },   /* '%' */
+    { 0x0E, 0x11, 0x00 },   /* '(' */
+    { 0x00, 0x11, 0x0E },   /* ')' */
+    { 0x15, 0x0E, 0x15 },   /* '*' */
+    { 0x04, 0x0E, 0x04 },   /* '+' */
+    { 0x10, 0x08, 0x00 },   /* ',' */
+    { 0x04, 0x04, 0x04 },   /* '-' */
+    { 0x00, 0x10, 0x00 },   /* '.' */
+    { 0x18, 0x04, 0x03 },   /* '/' */
+    { 0x1F, 0x11, 0x1F },   /* '0' */
+    { 0x12, 0x1F, 0x10 },   /* '1' */
+    { 0x19, 0x15, 0x12 },   /* '2' */
+    { 0x11, 0x15, 0x0A },   /* '3' */
+    { 0x07, 0x04, 0x1F },   /* '4' */
+    { 0x17, 0x15, 0x09 },   /* '5' */
+    { 0x1E, 0x15, 0x1D },   /* '6' */
+    { 0x01, 0x1D, 0x03 },   /* '7' */
+    { 0x1F, 0x15, 0x1F },   /* '8' */
+    { 0x17, 0x15, 0x0F },   /* '9' */
+    { 0x00, 0x0A, 0x00 },   /* ':' */
+    { 0x04, 0x0A, 0x11 },   /* '<' */
+    { 0x0A, 0x0A, 0x0A },   /* '=' */
+    { 0x11, 0x0A, 0x04 },   /* '>' */
+    { 0x01, 0x15, 0x02 },   /* '?' */
+    { 0x1E, 0x05, 0x1E },   /* 'A' */
+    { 0x1F, 0x15, 0x0A },   /* 'B' */
+    { 0x0E, 0x11, 0x11 },   /* 'C' */
+    { 0x1F, 0x11, 0x0E },   /* 'D' */
+    { 0x1F, 0x15, 0x11 },   /* 'E' */
+    { 0x1F, 0x05, 0x01 },   /* 'F' */
+    { 0x0E, 0x11, 0x1D },   /* 'G' */
+    { 0x1F, 0x04, 0x1F },   /* 'H' */
+    { 0x11, 0x1F, 0x11 },   /* 'I' */
+    { 0x08, 0x10, 0x0F },   /* 'J' */
+    { 0x1F, 0x04, 0x1B },   /* 'K' */
+    { 0x1F, 0x10, 0x10 },   /* 'L' */
+    { 0x1F, 0x03, 0x1F },   /* 'M' */
+    { 0x1F, 0x0E, 0x1F },   /* 'N' */
+    { 0x0E, 0x11, 0x0E },   /* 'O' */
+    { 0x1F, 0x05, 0x02 },   /* 'P' */
+    { 0x0E, 0x09, 0x1E },   /* 'Q' */
+    { 0x1F, 0x05, 0x1A },   /* 'R' */
+    { 0x12, 0x15, 0x09 },   /* 'S' */
+    { 0x01, 0x1F, 0x01 },   /* 'T' */
+    { 0x1F, 0x10, 0x1F },   /* 'U' */
+    { 0x0F, 0x10, 0x0F },   /* 'V' */
+    { 0x1F, 0x18, 0x1F },   /* 'W' */
+    { 0x1B, 0x04, 0x1B },   /* 'X' */
+    { 0x03, 0x1C, 0x03 },   /* 'Y' */
+    { 0x19, 0x15, 0x13 },   /* 'Z' */
+};
+
+#endif /* FB_FONT_H_INCLUDED */

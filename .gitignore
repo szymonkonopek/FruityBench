@@ -1,0 +1,8 @@
+build/
+Output/
+release/
+.venv/
+host/fb_host
+host/*.ppm
+*.o
+.DS_Store
