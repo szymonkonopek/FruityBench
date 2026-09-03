@@ -1,10 +1,11 @@
 /* FbMain.cpp -- the GUI process entry point.
  *
- * Same arrangement PEEK and UOOM use: do not link the SDK's TouchGFX GUI
- * source group (it owns `main` and needs a TouchGFX Designer project), keep
- * UNA_SDK_SOURCES_COMMON for startup/system.cpp/KernelBuilder, and compile
- * the one TouchGFX-free file that carries the kernel-side GUI protocol --
- * TouchGFXCommandProcessor.cpp -- by path. This supplies our own main().
+ * The GUI process without a TouchGFX Designer project: do not link the SDK's
+ * TouchGFX GUI source group (it owns `main` and does not compile without a
+ * Designer project), keep UNA_SDK_SOURCES_COMMON for
+ * startup/system.cpp/KernelBuilder, and compile the one TouchGFX-free file
+ * that carries the kernel-side GUI protocol -- TouchGFXCommandProcessor.cpp
+ * -- by path. This file then supplies main() itself.
  *
  * An activity app must still ship a GUI ELF (the packer only makes it optional
  * for glances), so this is the whole screen half of FruitBench: a framebuffer,

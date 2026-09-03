@@ -82,14 +82,14 @@ static void sim_tick(void)
         ++gSnap.records;
         gSnap.bytes += 96u;
         if (gSnap.t >= gNextLapT) {
-            fb_gen_lap(&gGen);
+            fb_gen_lap(&gGen);          /* draws this lap's increments */
             gNextLapT = gSnap.t + gLapInterval;
             ++gSnap.laps;
         }
         if (gSnap.target && gSnap.t >= gSnap.target) {
             gSnap.state = FB_STATE_SAVED;
             snprintf(gSnap.file, sizeof(gSnap.file),
-                     "Activity/202609/activity_20260902T101500.fit");
+                     "activity_20260902T101500.fit");
             break;
         }
     }
@@ -112,8 +112,10 @@ void fb_plat_command(int cmd, uint32_t arg)
         gLapInterval = (gSnap.rate > 1u && gSnap.target >= 8u)
                            ? gSnap.target / 8u : 300u;
         gNextLapT = gLapInterval;
+        /* The recorder puts only the name in the snapshot -- the directory is
+         * fixed and the 32 bytes are budgeted. */
         snprintf(gSnap.file, sizeof(gSnap.file),
-                 "Activity/202609/activity_20260902T101500.fit");
+                 "activity_20260902T101500.fit");
         break;
     case FB_CMD_PAUSE:   gSnap.state = FB_STATE_PAUSED; break;
     case FB_CMD_RESUME:  gSnap.state = FB_STATE_REC;    break;

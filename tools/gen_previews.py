@@ -38,9 +38,12 @@ SHOTS = [
      "the rate and the span, and a seed that changes on every start"),
     ("02-recording", 90, "3:e,4:d",
      "live recording: four measures at a time, each with its own sparkline"),
-    ("03-lap-measures", 150, "3:e,4:d,60:w,61:s",
-     "page two: the per-lap measures are marked LAP -- they reach the file "
-     "once per lap, not once per second"),
+    # Turbo, so several laps have actually closed by the time the shot is
+    # taken: an additive measure reads zero until its first lap boundary, and
+    # a preview should show it doing its job rather than waiting to start.
+    ("03-lap-measures", 24, "3:w,4:s,6:w,7:s,9:e,10:d,20:w,21:s",
+     "the marked measures do not go on every record: LAP reaches the file "
+     "once per lap as that lap's increment, SES once for the whole activity"),
     ("04-turbo", 26, "3:w,4:s,6:w,7:s,9:e,10:d",
      "turbo: 60 activity seconds per real second, so an hour of 1 Hz data "
      "takes a minute"),

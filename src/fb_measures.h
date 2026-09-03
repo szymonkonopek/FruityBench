@@ -14,8 +14,17 @@ extern "C" {
 #endif
 
 #define FB_MEASURE_COUNT 32
-#define FB_TIMED_COUNT   24   /* developer fields on the record message */
-#define FB_LAP_COUNT     8   /* developer fields on the lap message  */
+#define FB_RECORD_COUNT  24   /* developer fields on the record message  */
+#define FB_LAP_COUNT     5   /* developer fields on the lap message     */
+#define FB_SESSION_COUNT 21   /* developer fields on the session message */
+
+/* Which FIT messages carry a measure's value. The platform rule:
+ * time-based -> every record, session optional (and authoritative when
+ * present); not time-based -> session required, lap optional and always
+ * the increment for that lap alone, never a running total. */
+#define FB_ON_RECORD  0x01u
+#define FB_ON_SESSION 0x02u
+#define FB_ON_LAP     0x04u
 
 /* Waveform of one measure's synthetic series. */
 typedef enum {
@@ -49,6 +58,14 @@ typedef enum {
     FB_T_COUNT
 } fb_type_t;
 
+/* previewAggregation: how a time-based measure folds into one number. */
+typedef enum {
+    FB_AGG_NONE = 0,
+    FB_AGG_AVERAGE,
+    FB_AGG_MIN,
+    FB_AGG_MAX
+} fb_agg_t;
+
 typedef struct {
     const char *id;        /* manifest id == FIT developer field name */
     const char *title;     /* manifest title, shown on the watch too   */
@@ -57,17 +74,44 @@ typedef struct {
     uint8_t     field_num; /* FIT developer field number (unique)      */
     uint8_t     type;      /* fb_type_t                                */
     uint8_t     wave;      /* fb_wave_t                                */
-    uint8_t     timed;     /* 1: one value per record, 0: one per lap  */
-    float       lo;        /* value envelope, inclusive                */
-    float       hi;
+    uint8_t     agg;       /* fb_agg_t                                 */
+    uint8_t     where;     /* FB_ON_* bitmask                          */
+    float       lo;        /* envelope; for an FB_ON_LAP measure this  */
+    float       hi;        /* is the range of one lap's increment      */
     float       period_s;  /* nominal waveform period, activity secs   */
 } fb_measure_t;
 
+#define FB_IS_TIMED(m)    (((m)->where & FB_ON_RECORD) != 0u)
+#define FB_HAS_LAP(m)     (((m)->where & FB_ON_LAP) != 0u)
+#define FB_HAS_SESSION(m) (((m)->where & FB_ON_SESSION) != 0u)
+
 extern const fb_measure_t fb_measures[FB_MEASURE_COUNT];
 
-/* Indices into fb_measures[], split by destination message. */
-extern const uint8_t fb_timed_idx[FB_TIMED_COUNT];
+/* Indices into fb_measures[], one list per destination message. Each is
+ * also the order the developer fields appear in that message. */
+extern const uint8_t fb_record_idx[FB_RECORD_COUNT];
 extern const uint8_t fb_lap_idx[FB_LAP_COUNT];
+extern const uint8_t fb_session_idx[FB_SESSION_COUNT];
+
+/* FitWriter::defineMessage takes an initializer_list, which cannot be
+ * built from an array at run time, so the developer field lists are
+ * generated as literals. FB_DEV(i) is defined by the caller (see
+ * src/fb_fit.cpp) and expands to one FitWriter::DevField. */
+#define FB_RECORD_DEV_LIST \
+    FB_DEV(0), FB_DEV(1), FB_DEV(2), FB_DEV(3), FB_DEV(6), FB_DEV(7), \
+    FB_DEV(8), FB_DEV(9), FB_DEV(12), FB_DEV(13), FB_DEV(14), \
+    FB_DEV(15), FB_DEV(18), FB_DEV(20), FB_DEV(21), FB_DEV(22), \
+    FB_DEV(23), FB_DEV(25), FB_DEV(26), FB_DEV(27), FB_DEV(28), \
+    FB_DEV(29), FB_DEV(30), FB_DEV(31)
+
+#define FB_LAP_DEV_LIST \
+    FB_DEV(4), FB_DEV(10), FB_DEV(11), FB_DEV(17), FB_DEV(19)
+
+#define FB_SESSION_DEV_LIST \
+    FB_DEV(0), FB_DEV(2), FB_DEV(4), FB_DEV(5), FB_DEV(7), FB_DEV(9), \
+    FB_DEV(10), FB_DEV(11), FB_DEV(12), FB_DEV(14), FB_DEV(16), \
+    FB_DEV(17), FB_DEV(18), FB_DEV(19), FB_DEV(21), FB_DEV(23), \
+    FB_DEV(24), FB_DEV(26), FB_DEV(27), FB_DEV(29), FB_DEV(30)
 
 #ifdef __cplusplus
 }

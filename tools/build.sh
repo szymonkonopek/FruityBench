@@ -1,8 +1,8 @@
 #!/bin/sh
 # Build FruitBench for the watch.
 #
-# Same three-step wrap PEEK and UOOM use: the ST toolchain from STM32CubeCLT,
-# UNA_SDK pointing at a una-sdk checkout, and a project-local venv with
+# Three things have to line up: the ST toolchain from STM32CubeCLT, UNA_SDK
+# pointing at a una-sdk checkout, and a project-local venv with
 # pyelftools+pillow for the SDK's packer.
 #
 #   tools/build.sh          build
@@ -62,8 +62,11 @@ echo "UNA_SDK   = $UNA_SDK"
 echo "toolchain = $(command -v arm-none-eabi-gcc)"
 
 # The linker writes its .map into Output/ and the packer writes the .uapp
-# there, so it has to exist first.
+# there, so it has to exist first. Stale images go: tools/make_release.sh
+# packages the newest .uapp it finds, and an older one left lying around from
+# a previous version is exactly how a release ships the wrong binary.
 mkdir -p "$ROOT/Output"
+rm -f "$ROOT"/Output/*.uapp
 
 cmake -G "Unix Makefiles" \
       -DUNA_PYTHON_EXECUTABLE="$VENV/bin/python" \

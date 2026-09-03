@@ -1,11 +1,11 @@
-/* fb_font.h -- 3x5 bitmap font, copied from UOOM's generated font.
+/* fb_font.h -- 3x5 bitmap font.
  *
  * fb_font_cols[] holds three column bytes per glyph; bit 0 is the top row.
  * Look a character up in fb_font_chars[]. Uppercase, digits and a little
  * punctuation.
  *
- * Two glyphs differ from the inherited font: M and N were byte-identical
- * there, which turned BENCHMARK into BEHCHMARK on the panel. In three pixels
+ * M and N were byte-identical in the table this grew out of, which turned
+ * BENCHMARK into BEHCHMARK on the panel. In three pixels
  * of width the only thing that can separate M, N, H and W is where the middle
  * column sits, so they now take the top (M), a three-row middle (N), the
  * centre bar (H) and the bottom (W). A true diagonal (0x07/0x1C) was tried

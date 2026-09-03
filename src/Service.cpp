@@ -293,8 +293,11 @@ void Service::writeDueRecords()
         ++written;
 
         if (t >= mNextLapT) {
-            mFit->addLap(mGen, mUtcStart + (std::time_t)t);
+            /* Close the lap in the generator first: that is where each
+             * additive measure draws the increment the lap message then
+             * writes. */
             fb_gen_lap(&mGen);
+            mFit->addLap(mGen, mUtcStart + (std::time_t)t);
             mNextLapT = t + mLapInterval;
             mSnap.laps = mFit->laps();
         }
@@ -401,8 +404,8 @@ void Service::onCommand(uint8_t cmd, uint32_t arg)
     case FB_CMD_LAP:
         if (mFit && (mSnap.state == FB_STATE_REC
                      || mSnap.state == FB_STATE_PAUSED)) {
-            mFit->addLap(mGen, mUtcStart + (std::time_t)mSnap.t);
             fb_gen_lap(&mGen);
+            mFit->addLap(mGen, mUtcStart + (std::time_t)mSnap.t);
             mNextLapT = mSnap.t + mLapInterval;
             mSnap.laps = mFit->laps();
         }

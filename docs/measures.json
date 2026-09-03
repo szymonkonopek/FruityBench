@@ -1,5 +1,6 @@
 {
   "appId": "B39E2FC2545D41D0",
+  "appVersion": "0.2.0",
   "measures": [
     {
       "index": 0,
@@ -13,12 +14,16 @@
       "visualisation": "line-chart",
       "preview": true,
       "previewAggregation": "average",
+      "dest": "record+session",
+      "onRecord": true,
+      "onSession": true,
+      "onLap": false,
       "fitType": "U16",
       "wave": "SINE",
       "lo": 0,
       "hi": 240,
       "period": 180,
-      "probe": "core: line-chart / timed / preview / average"
+      "probe": "core: line-chart / time-based / preview / average, with an explicit summary"
     },
     {
       "index": 1,
@@ -32,12 +37,16 @@
       "visualisation": "line-chart",
       "preview": true,
       "previewAggregation": "min",
+      "dest": "record",
+      "onRecord": true,
+      "onSession": false,
+      "onLap": false,
       "fitType": "U16",
       "wave": "WALK",
       "lo": 0,
       "hi": 500,
       "period": 300,
-      "probe": "core: line-chart / timed / preview / min"
+      "probe": "core: line-chart / time-based / preview / min, folded from the records"
     },
     {
       "index": 2,
@@ -51,12 +60,16 @@
       "visualisation": "line-chart",
       "preview": true,
       "previewAggregation": "max",
+      "dest": "record+session",
+      "onRecord": true,
+      "onSession": true,
+      "onLap": false,
       "fitType": "U16",
       "wave": "SPIKES",
       "lo": 0,
       "hi": 900,
       "period": 120,
-      "probe": "core: line-chart / timed / preview / max"
+      "probe": "core: line-chart / time-based / preview / max; a spiky series makes a wrong fold obvious"
     },
     {
       "index": 3,
@@ -70,12 +83,16 @@
       "visualisation": "line-chart",
       "preview": false,
       "previewAggregation": null,
+      "dest": "record",
+      "onRecord": true,
+      "onSession": false,
+      "onLap": false,
       "fitType": "U16",
       "wave": "DRIFT",
       "lo": 20,
       "hi": 400,
       "period": 240,
-      "probe": "core: line-chart / timed / no preview"
+      "probe": "core: line-chart / time-based / no preview"
     },
     {
       "index": 4,
@@ -89,12 +106,16 @@
       "visualisation": "line-chart",
       "preview": true,
       "previewAggregation": null,
+      "dest": "session+lap",
+      "onRecord": false,
+      "onSession": true,
+      "onLap": true,
       "fitType": "U16",
       "wave": "WALK",
       "lo": 0,
       "hi": 60,
-      "period": 0,
-      "probe": "core: line-chart / per-lap / preview"
+      "period": 240,
+      "probe": "core: line-chart / not time-based / preview; per-lap increments that sum to the session value"
     },
     {
       "index": 5,
@@ -108,12 +129,16 @@
       "visualisation": "line-chart",
       "preview": false,
       "previewAggregation": null,
+      "dest": "session",
+      "onRecord": false,
+      "onSession": true,
+      "onLap": false,
       "fitType": "U16",
       "wave": "RAMP",
       "lo": 0,
       "hi": 100,
       "period": 0,
-      "probe": "core: line-chart / per-lap / no preview"
+      "probe": "core: line-chart / not time-based / no preview; session only, no laps"
     },
     {
       "index": 6,
@@ -127,12 +152,16 @@
       "visualisation": "number",
       "preview": true,
       "previewAggregation": "average",
+      "dest": "record",
+      "onRecord": true,
+      "onSession": false,
+      "onLap": false,
       "fitType": "U16",
       "wave": "TRIANGLE",
       "lo": 0,
       "hi": 300,
       "period": 150,
-      "probe": "core: number / timed / preview / average"
+      "probe": "core: number / time-based / preview / average"
     },
     {
       "index": 7,
@@ -146,12 +175,16 @@
       "visualisation": "number",
       "preview": true,
       "previewAggregation": "min",
+      "dest": "record+session",
+      "onRecord": true,
+      "onSession": true,
+      "onLap": false,
       "fitType": "U16",
       "wave": "DECAY",
       "lo": 0,
       "hi": 700,
       "period": 90,
-      "probe": "core: number / timed / preview / min"
+      "probe": "core: number / time-based / preview / min, with an explicit summary"
     },
     {
       "index": 8,
@@ -165,12 +198,16 @@
       "visualisation": "number",
       "preview": true,
       "previewAggregation": "max",
+      "dest": "record",
+      "onRecord": true,
+      "onSession": false,
+      "onLap": false,
       "fitType": "U16",
       "wave": "BURST",
       "lo": 0,
       "hi": 800,
       "period": 200,
-      "probe": "core: number / timed / preview / max"
+      "probe": "core: number / time-based / preview / max"
     },
     {
       "index": 9,
@@ -184,12 +221,16 @@
       "visualisation": "number",
       "preview": false,
       "previewAggregation": null,
+      "dest": "record+session",
+      "onRecord": true,
+      "onSession": true,
+      "onLap": false,
       "fitType": "U8",
       "wave": "SQUARE",
       "lo": 0,
       "hi": 200,
       "period": 60,
-      "probe": "core: number / timed / no preview"
+      "probe": "probe: an explicit summary on a measure the manifest keeps out of the preview"
     },
     {
       "index": 10,
@@ -203,12 +244,16 @@
       "visualisation": "number",
       "preview": true,
       "previewAggregation": null,
+      "dest": "session+lap",
+      "onRecord": false,
+      "onSession": true,
+      "onLap": true,
       "fitType": "U32",
       "wave": "COUNTER",
       "lo": 0,
-      "hi": 4000,
-      "period": 0,
-      "probe": "core: number / per-lap / preview"
+      "hi": 500,
+      "period": 300,
+      "probe": "core: number / not time-based / preview; the name is a total, so the lap value must be the increment and the session value the sum"
     },
     {
       "index": 11,
@@ -222,12 +267,16 @@
       "visualisation": "number",
       "preview": false,
       "previewAggregation": null,
+      "dest": "session+lap",
+      "onRecord": false,
+      "onSession": true,
+      "onLap": true,
       "fitType": "U16",
       "wave": "NOISE",
       "lo": 0,
       "hi": 250,
       "period": 0,
-      "probe": "core: number / per-lap / no preview"
+      "probe": "core: number / not time-based / no preview"
     },
     {
       "index": 12,
@@ -241,12 +290,16 @@
       "visualisation": "gauge",
       "preview": true,
       "previewAggregation": "average",
+      "dest": "record+session",
+      "onRecord": true,
+      "onSession": true,
+      "onLap": false,
       "fitType": "U8",
       "wave": "SINE",
       "lo": 0,
       "hi": 100,
       "period": 210,
-      "probe": "core: gauge / timed / preview / average"
+      "probe": "core: gauge / time-based / preview / average, with an explicit summary"
     },
     {
       "index": 13,
@@ -260,12 +313,16 @@
       "visualisation": "gauge",
       "preview": true,
       "previewAggregation": "min",
+      "dest": "record",
+      "onRecord": true,
+      "onSession": false,
+      "onLap": false,
       "fitType": "U8",
       "wave": "WALK",
       "lo": 0,
       "hi": 100,
       "period": 330,
-      "probe": "core: gauge / timed / preview / min"
+      "probe": "core: gauge / time-based / preview / min"
     },
     {
       "index": 14,
@@ -279,12 +336,16 @@
       "visualisation": "gauge",
       "preview": true,
       "previewAggregation": "max",
+      "dest": "record+session",
+      "onRecord": true,
+      "onSession": true,
+      "onLap": false,
       "fitType": "U8",
       "wave": "STAIRS",
       "lo": 0,
       "hi": 100,
       "period": 400,
-      "probe": "core: gauge / timed / preview / max"
+      "probe": "core: gauge / time-based / preview / max, with an explicit summary"
     },
     {
       "index": 15,
@@ -298,12 +359,16 @@
       "visualisation": "gauge",
       "preview": false,
       "previewAggregation": null,
+      "dest": "record",
+      "onRecord": true,
+      "onSession": false,
+      "onLap": false,
       "fitType": "U8",
       "wave": "SAW",
       "lo": 0,
       "hi": 100,
       "period": 150,
-      "probe": "core: gauge / timed / no preview"
+      "probe": "core: gauge / time-based / no preview"
     },
     {
       "index": 16,
@@ -317,12 +382,16 @@
       "visualisation": "gauge",
       "preview": true,
       "previewAggregation": null,
+      "dest": "session",
+      "onRecord": false,
+      "onSession": true,
+      "onLap": false,
       "fitType": "U8",
       "wave": "RAMP",
       "lo": 0,
       "hi": 100,
       "period": 0,
-      "probe": "core: gauge / per-lap / preview"
+      "probe": "core: gauge / not time-based / preview; a percentage does not add up, so it is session only -- the case where lap values must be absent"
     },
     {
       "index": 17,
@@ -336,12 +405,16 @@
       "visualisation": "gauge",
       "preview": false,
       "previewAggregation": null,
+      "dest": "session+lap",
+      "onRecord": false,
+      "onSession": true,
+      "onLap": true,
       "fitType": "U16",
       "wave": "NOISE",
       "lo": 200,
       "hi": 1400,
       "period": 0,
-      "probe": "core: gauge / per-lap / no preview"
+      "probe": "core: gauge / not time-based / no preview, with lap increments"
     },
     {
       "index": 18,
@@ -355,6 +428,10 @@
       "visualisation": "line-chart",
       "preview": true,
       "previewAggregation": "average",
+      "dest": "record+session",
+      "onRecord": true,
+      "onSession": true,
+      "onLap": false,
       "fitType": "F32",
       "wave": "DRIFT",
       "lo": 0.5,
@@ -374,12 +451,16 @@
       "visualisation": "number",
       "preview": true,
       "previewAggregation": null,
+      "dest": "session+lap",
+      "onRecord": false,
+      "onSession": true,
+      "onLap": true,
       "fitType": "F32",
       "wave": "COUNTER",
       "lo": 0.0,
-      "hi": 12.0,
-      "period": 0,
-      "probe": "probe: scaling factor on a per-lap value (km -> mi)"
+      "hi": 2.0,
+      "period": 300,
+      "probe": "probe: scaling factor on an additive per-lap quantity (km -> mi)"
     },
     {
       "index": 20,
@@ -393,6 +474,10 @@
       "visualisation": "line-chart",
       "preview": true,
       "previewAggregation": "average",
+      "dest": "record",
+      "onRecord": true,
+      "onSession": false,
+      "onLap": false,
       "fitType": "F32",
       "wave": "SINE",
       "lo": 0.0,
@@ -412,12 +497,16 @@
       "visualisation": "number",
       "preview": true,
       "previewAggregation": "min",
+      "dest": "record+session",
+      "onRecord": true,
+      "onSession": true,
+      "onLap": false,
       "fitType": "F32",
       "wave": "PULSE",
       "lo": 0.0,
       "hi": 0.9,
       "period": 70,
-      "probe": "probe: tiny scaling factor (x0.001)"
+      "probe": "probe: tiny scaling factor (x0.001); a pulse train's minimum is zero"
     },
     {
       "index": 22,
@@ -431,6 +520,10 @@
       "visualisation": "gauge",
       "preview": true,
       "previewAggregation": "max",
+      "dest": "record",
+      "onRecord": true,
+      "onSession": false,
+      "onLap": false,
       "fitType": "U8",
       "wave": "TRIANGLE",
       "lo": 0,
@@ -450,12 +543,16 @@
       "visualisation": "line-chart",
       "preview": true,
       "previewAggregation": "average",
+      "dest": "record+session",
+      "onRecord": true,
+      "onSession": true,
+      "onLap": false,
       "fitType": "U32",
       "wave": "COUNTER",
       "lo": 0,
       "hi": 90000,
       "period": 0,
-      "probe": "probe: 40-character title (layout stress) + monotonic uint32"
+      "probe": "probe: 40-character title, monotonic uint32, and an average summary of a series that only ever rises"
     },
     {
       "index": 24,
@@ -469,12 +566,16 @@
       "visualisation": "number",
       "preview": true,
       "previewAggregation": null,
+      "dest": "session",
+      "onRecord": false,
+      "onSession": true,
+      "onLap": false,
       "fitType": "U8",
       "wave": "NOISE",
       "lo": 0,
       "hi": 9,
       "period": 0,
-      "probe": "probe: 1-character title, 2-character unit"
+      "probe": "probe: 1-character title, 2-character unit, session only"
     },
     {
       "index": 25,
@@ -488,6 +589,10 @@
       "visualisation": "line-chart",
       "preview": true,
       "previewAggregation": "average",
+      "dest": "record",
+      "onRecord": true,
+      "onSession": false,
+      "onLap": false,
       "fitType": "F32",
       "wave": "BURST",
       "lo": 0.0,
@@ -507,12 +612,16 @@
       "visualisation": "line-chart",
       "preview": true,
       "previewAggregation": "min",
+      "dest": "record+session",
+      "onRecord": true,
+      "onSession": true,
+      "onLap": false,
       "fitType": "S16",
       "wave": "SINE",
       "lo": -800,
       "hi": 800,
       "period": 190,
-      "probe": "probe: signed values crossing zero (sint16)"
+      "probe": "probe: signed values crossing zero (sint16), so the summary is negative"
     },
     {
       "index": 27,
@@ -526,6 +635,10 @@
       "visualisation": "number",
       "preview": true,
       "previewAggregation": "max",
+      "dest": "record+session",
+      "onRecord": true,
+      "onSession": true,
+      "onLap": false,
       "fitType": "U32",
       "wave": "SPIKES",
       "lo": 0,
@@ -545,6 +658,10 @@
       "visualisation": "line-chart",
       "preview": true,
       "previewAggregation": "average",
+      "dest": "record",
+      "onRecord": true,
+      "onSession": false,
+      "onLap": false,
       "fitType": "F32",
       "wave": "WALK",
       "lo": 0.001,
@@ -564,12 +681,16 @@
       "visualisation": "line-chart",
       "preview": true,
       "previewAggregation": "average",
+      "dest": "record+session",
+      "onRecord": true,
+      "onSession": true,
+      "onLap": false,
       "fitType": "U16",
       "wave": "FLAT",
       "lo": 400,
       "hi": 400,
       "period": 0,
-      "probe": "probe: perfectly flat series (degenerate chart, min == max)"
+      "probe": "probe: perfectly flat series, where min == average == max"
     },
     {
       "index": 30,
@@ -583,12 +704,16 @@
       "visualisation": "number",
       "preview": true,
       "previewAggregation": "max",
+      "dest": "record+session",
+      "onRecord": true,
+      "onSession": true,
+      "onLap": false,
       "fitType": "U32",
       "wave": "COUNTER",
       "lo": 0,
       "hi": 20000,
       "period": 0,
-      "probe": "probe: monotonic counter sampled every second"
+      "probe": "probe: a monotonic counter that IS time-based, so its value belongs on every record and its summary is the last sample"
     },
     {
       "index": 31,
@@ -602,12 +727,16 @@
       "visualisation": "line-chart",
       "preview": true,
       "previewAggregation": "average",
+      "dest": "record",
+      "onRecord": true,
+      "onSession": false,
+      "onLap": false,
       "fitType": "U8",
       "wave": "SPARSE",
       "lo": 0,
       "hi": 4,
       "period": 0,
-      "probe": "probe: sparse step series (value holds for tens of seconds)"
+      "probe": "probe: sparse step series (a value holds for tens of seconds)"
     }
   ]
 }

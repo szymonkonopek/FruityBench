@@ -13,7 +13,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "fb_fmt.h"
 #include "fb_gen.h"
 
 /* ---- PRNG --------------------------------------------------------------- */
@@ -71,6 +70,28 @@ static float clampf(float v, float lo, float hi)
         return hi;
     }
     return v;
+}
+
+static void stat_reset(fb_stat_t *st)
+{
+    st->min = 0.0f;
+    st->max = 0.0f;
+    st->sum = 0.0f;
+    st->count = 0u;
+}
+
+static void stat_add(fb_stat_t *st, float v)
+{
+    if (st->count == 0u) {
+        st->min = v;
+        st->max = v;
+    } else if (v < st->min) {
+        st->min = v;
+    } else if (v > st->max) {
+        st->max = v;
+    }
+    st->sum += v;
+    ++st->count;
 }
 
 #define TWO_PI 6.28318530718f
@@ -132,6 +153,9 @@ void fb_gen_init(fb_gen_t *g, uint32_t seed)
 
         m->hold_value = m->value;
         m->hold_until = 0u;
+        m->lap_inc = 0.0f;
+        m->total = 0.0f;
+        stat_reset(&m->stat);
     }
 
     /* Predefined metrics: a plausible-looking run somewhere in Krakow, which
@@ -351,9 +375,20 @@ void fb_gen_step(fb_gen_t *g, uint32_t t)
         const fb_measure_t *d = &fb_measures[k];
         fb_measure_state_t *m = &g->m[k];
 
-        /* A per-lap measure evolves like any other; it is simply only read
-         * when the lap message is written. */
+        /* An additive measure's series advances once per lap, in fb_gen_lap();
+         * sampling it here as well would double-advance the waveform. */
+        if (FB_HAS_LAP(d)) {
+            continue;
+        }
+
         m->value = wave_sample(d, m, t, dt);
+
+        /* Only a time-based measure is folded: the rule confines
+         * previewAggregation to those, and a session-only measure's value is
+         * simply its last sample. */
+        if (FB_IS_TIMED(d)) {
+            stat_add(&m->stat, m->value);
+        }
     }
 
     predef_step(g, dt);
@@ -361,6 +396,23 @@ void fb_gen_step(fb_gen_t *g, uint32_t t)
 
 void fb_gen_lap(fb_gen_t *g)
 {
+    int k;
+
+    for (k = 0; k < FB_MEASURE_COUNT; ++k) {
+        const fb_measure_t *d = &fb_measures[k];
+        fb_measure_state_t *m = &g->m[k];
+
+        if (!FB_HAS_LAP(d)) {
+            continue;
+        }
+        /* Sampled in lap units -- a minute per lap -- so a declared period of
+         * 240 s means a cycle of about four laps and consecutive laps differ
+         * visibly. The result is this lap's increment, inside the envelope,
+         * and the total is what the session message will carry. */
+        m->lap_inc = wave_sample(d, m, g->lap_index * 60u, 60u);
+        m->total += m->lap_inc;
+        m->value = m->total;
+    }
     ++g->lap_index;
 }
 
@@ -369,10 +421,49 @@ float fb_gen_value(const fb_gen_t *g, int idx)
     if (idx < 0 || idx >= FB_MEASURE_COUNT) {
         return 0.0f;
     }
-    return g->m[idx].value;
+    return FB_HAS_LAP(&fb_measures[idx]) ? g->m[idx].total : g->m[idx].value;
 }
 
-void fb_gen_format(const fb_gen_t *g, int idx, char *out, int cap)
+float fb_gen_lap_value(const fb_gen_t *g, int idx)
 {
-    fb_fmt_value(idx, fb_gen_value(g, idx), out, cap);
+    if (idx < 0 || idx >= FB_MEASURE_COUNT) {
+        return 0.0f;
+    }
+    if (!FB_HAS_LAP(&fb_measures[idx])) {
+        return fb_gen_session_value(g, idx);
+    }
+    return g->m[idx].lap_inc;
+}
+
+float fb_gen_session_value(const fb_gen_t *g, int idx)
+{
+    const fb_measure_t *d;
+    const fb_measure_state_t *m;
+
+    if (idx < 0 || idx >= FB_MEASURE_COUNT) {
+        return 0.0f;
+    }
+    d = &fb_measures[idx];
+    m = &g->m[idx];
+
+    if (FB_HAS_LAP(d)) {
+        return m->total;                    /* the sum of the increments */
+    }
+    if (!FB_IS_TIMED(d)) {
+        return m->value;                    /* one value for the activity */
+    }
+    if (m->stat.count == 0u) {
+        return m->value;                    /* nothing recorded yet */
+    }
+
+    /* The same fold the companion would have applied to the records. */
+    switch (d->agg) {
+    case FB_AGG_MIN:
+        return m->stat.min;
+    case FB_AGG_MAX:
+        return m->stat.max;
+    case FB_AGG_AVERAGE:
+    default:
+        return m->stat.sum / (float)m->stat.count;
+    }
 }

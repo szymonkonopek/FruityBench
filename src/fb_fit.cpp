@@ -74,6 +74,11 @@ std::time_t epochToLocal(std::time_t utc)
            + lt.tm_sec;
 }
 
+/* The generated FB_*_DEV_LIST macros expand to FB_DEV(i) per developer field;
+ * defineMessage takes an initializer_list, so these have to be literals. */
+#define FB_DEV(i) fit::FitWriter::DevField{ fb_measures[i].field_num, \
+                                            sizeOf(fb_measures[i].type), 0 }
+
 }  /* namespace */
 
 /* ---- construction ------------------------------------------------------- */
@@ -94,8 +99,8 @@ uint32_t FbFitWriter::recordDevBytes()
     uint32_t n = 0;
     int i;
 
-    for (i = 0; i < FB_TIMED_COUNT; ++i) {
-        n += sizeOf(fb_measures[fb_timed_idx[i]].type);
+    for (i = 0; i < FB_RECORD_COUNT; ++i) {
+        n += sizeOf(fb_measures[fb_record_idx[i]].type);
     }
     return n;
 }
@@ -107,6 +112,17 @@ uint32_t FbFitWriter::lapDevBytes()
 
     for (i = 0; i < FB_LAP_COUNT; ++i) {
         n += sizeOf(fb_measures[fb_lap_idx[i]].type);
+    }
+    return n;
+}
+
+uint32_t FbFitWriter::sessionDevBytes()
+{
+    uint32_t n = 0;
+    int i;
+
+    for (i = 0; i < FB_SESSION_COUNT; ++i) {
+        n += sizeOf(fb_measures[fb_session_idx[i]].type);
     }
     return n;
 }
@@ -138,81 +154,48 @@ bool FbFitWriter::writeFieldDescription(const fb_measure_t &m)
 
 bool FbFitWriter::defineMessages()
 {
-    /* defineMessage takes initializer_lists, so a developer field array cannot
-     * be handed over as pointer + count: each list is written out element by
-     * element, and a static_assert holds the count to the catalogue's. */
     bool ok = true;
 
     /* record: the predefined metrics, then one developer field per time-based
-     * measure, in fb_timed_idx order. */
-    {
-        std::initializer_list<fit::FitWriter::Field> fields = {
-            fit::field::Record::Timestamp,
-            fit::field::Record::PositionLat,
-            fit::field::Record::PositionLong,
-            fit::field::Record::EnhancedAltitude,
-            fit::field::Record::EnhancedSpeed,
-            fit::field::Record::Distance,
-            fit::field::Record::HeartRate,
-            fit::field::Record::Cadence,
-            fit::field::Record::FractionalCadence,
-        };
-        fit::FitWriter::DevField dev[FB_TIMED_COUNT];
-        int i;
+     * measure -- the rule requires a value on every record. */
+    ok = mFit.defineMessage(L_RECORD, fit::mesgNum(fit::MesgNum::Record),
+        {fit::field::Record::Timestamp,
+         fit::field::Record::PositionLat,
+         fit::field::Record::PositionLong,
+         fit::field::Record::EnhancedAltitude,
+         fit::field::Record::EnhancedSpeed,
+         fit::field::Record::Distance,
+         fit::field::Record::HeartRate,
+         fit::field::Record::Cadence,
+         fit::field::Record::FractionalCadence},
+        {FB_RECORD_DEV_LIST}) && ok;
 
-        for (i = 0; i < FB_TIMED_COUNT; ++i) {
-            const fb_measure_t &m = fb_measures[fb_timed_idx[i]];
-
-            dev[i] = fit::FitWriter::DevField{m.field_num, sizeOf(m.type), 0};
-        }
-        ok = mFit.defineMessage(L_RECORD, fit::mesgNum(fit::MesgNum::Record),
-                                fields,
-                                {dev[0], dev[1], dev[2], dev[3], dev[4], dev[5],
-                                 dev[6], dev[7], dev[8], dev[9], dev[10], dev[11],
-                                 dev[12], dev[13], dev[14], dev[15], dev[16],
-                                 dev[17], dev[18], dev[19], dev[20], dev[21],
-                                 dev[22], dev[23]}) && ok;
-        static_assert(FB_TIMED_COUNT == 24,
-                      "the record definition lists its 24 developer fields "
-                      "explicitly; regenerate it if the catalogue changes");
-    }
-
-    /* lap: the lap aggregates, then one developer field per per-lap measure. */
-    {
-        std::initializer_list<fit::FitWriter::Field> fields = {
-            fit::field::Lap::MessageIndex,
-            fit::field::Lap::Timestamp,
-            fit::field::Lap::StartTime,
-            fit::field::Lap::TotalElapsedTime,
-            fit::field::Lap::TotalTimerTime,
-            fit::field::Lap::TotalDistance,
-            fit::field::Lap::AvgSpeed,
-            fit::field::Lap::MaxSpeed,
-            fit::field::Lap::AvgHeartRate,
-            fit::field::Lap::MaxHeartRate,
-            fit::field::Lap::TotalAscent,
-            fit::field::Lap::TotalDescent,
-        };
-        fit::FitWriter::DevField dev[FB_LAP_COUNT];
-        int i;
-
-        for (i = 0; i < FB_LAP_COUNT; ++i) {
-            const fb_measure_t &m = fb_measures[fb_lap_idx[i]];
-
-            dev[i] = fit::FitWriter::DevField{m.field_num, sizeOf(m.type), 0};
-        }
-        ok = mFit.defineMessage(L_LAP, fit::mesgNum(fit::MesgNum::Lap), fields,
-                                {dev[0], dev[1], dev[2], dev[3],
-                                 dev[4], dev[5], dev[6], dev[7]}) && ok;
-        static_assert(FB_LAP_COUNT == 8,
-                      "the lap definition lists its 8 developer fields "
-                      "explicitly; regenerate it if the catalogue changes");
-    }
+    /* lap: the lap aggregates, then the additive measures' increments. Only
+     * the additive ones appear here: a lap value describes that lap alone, so
+     * a quantity that does not add up (a percentage) has none. */
+    ok = mFit.defineMessage(L_LAP, fit::mesgNum(fit::MesgNum::Lap),
+        {fit::field::Lap::MessageIndex,
+         fit::field::Lap::Timestamp,
+         fit::field::Lap::StartTime,
+         fit::field::Lap::TotalElapsedTime,
+         fit::field::Lap::TotalTimerTime,
+         fit::field::Lap::TotalDistance,
+         fit::field::Lap::AvgSpeed,
+         fit::field::Lap::MaxSpeed,
+         fit::field::Lap::AvgHeartRate,
+         fit::field::Lap::MaxHeartRate,
+         fit::field::Lap::TotalAscent,
+         fit::field::Lap::TotalDescent},
+        {FB_LAP_DEV_LIST}) && ok;
 
     ok = mFit.defineMessage(L_EVENT, fit::mesgNum(fit::MesgNum::Event),
         {fit::field::Event::Timestamp, fit::field::Event::EventField,
          fit::field::Event::EventType}) && ok;
 
+    /* session: the activity summary, then every measure that owes the file one
+     * value for the whole activity -- mandatory for measures that are not
+     * time-based, optional (and authoritative) for the time-based ones that
+     * declare it. */
     ok = mFit.defineMessage(L_SESSION, fit::mesgNum(fit::MesgNum::Session),
         {fit::field::Session::MessageIndex, fit::field::Session::Timestamp,
          fit::field::Session::StartTime, fit::field::Session::Sport,
@@ -221,7 +204,8 @@ bool FbFitWriter::defineMessages()
          fit::field::Session::AvgSpeed, fit::field::Session::MaxSpeed,
          fit::field::Session::AvgHeartRate, fit::field::Session::MaxHeartRate,
          fit::field::Session::TotalAscent, fit::field::Session::TotalDescent,
-         fit::field::Session::NumLaps}) && ok;
+         fit::field::Session::NumLaps},
+        {FB_SESSION_DEV_LIST}) && ok;
 
     ok = mFit.defineMessage(L_ACTIVITY, fit::mesgNum(fit::MesgNum::Activity),
         {fit::field::Activity::Timestamp, fit::field::Activity::TotalTimerTime,
@@ -409,8 +393,8 @@ bool FbFitWriter::addRecord(const fb_gen_t &g, std::time_t utc)
      .u8(cad.cadence)
      .u8(cad.fractionalCadence);
 
-    for (i = 0; i < FB_TIMED_COUNT; ++i) {
-        int idx = fb_timed_idx[i];
+    for (i = 0; i < FB_RECORD_COUNT; ++i) {
+        int idx = fb_record_idx[i];
 
         putValue(d, fb_measures[idx], fb_gen_value(&g, idx));
     }
@@ -463,11 +447,12 @@ bool FbFitWriter::addLap(const fb_gen_t &g, std::time_t utc)
      .u16((uint16_t)(ascent > 0.0f ? ascent : 0.0f))
      .u16((uint16_t)(descent > 0.0f ? descent : 0.0f));
 
-    /* The per-lap measures: one value for the lap that just ended. */
+    /* The increment each additive measure accrued during the lap that just
+     * ended -- never its running total. */
     for (i = 0; i < FB_LAP_COUNT; ++i) {
         int idx = fb_lap_idx[i];
 
-        putValue(d, fb_measures[idx], fb_gen_value(&g, idx));
+        putValue(d, fb_measures[idx], fb_gen_lap_value(&g, idx));
     }
 
     if (!d.write()) {
@@ -480,13 +465,16 @@ bool FbFitWriter::addLap(const fb_gen_t &g, std::time_t utc)
     return true;
 }
 
-bool FbFitWriter::finish(const fb_gen_t &g, std::time_t utc)
+bool FbFitWriter::finish(fb_gen_t &g, std::time_t utc)
 {
     uint32_t elapsed;
     bool ok;
 
-    /* A lap is always open, so the tail of the activity is never lost. */
+    /* A lap is always open, so the tail of the activity is never lost -- and
+     * the generator closes it first, so the increments in the file add up to
+     * the session totals written below. */
     if (utc > mLap.startUtc) {
+        fb_gen_lap(&g);
         addLap(g, utc);
     }
 
@@ -494,28 +482,42 @@ bool FbFitWriter::finish(const fb_gen_t &g, std::time_t utc)
 
     elapsed = (uint32_t)(utc - mStartUtc);
 
-    ok = mFit.data(L_SESSION)
-        .u16(0)
-        .u32(toFitTime(utc))
-        .u32(toFitTime(mStartUtc))
-        .u8((uint8_t)fit::Sport::Generic)
-        .u8((uint8_t)fit::SubSport::Generic)
-        .u32(elapsed * 1000u)
-        .u32(elapsed * 1000u)
-        .u32((uint32_t)(g.p.distance_m * 100.0f))
-        .u16((uint16_t)(mSession.speedCount
-                            ? mSession.speedSum / (float)mSession.speedCount
-                                  * 1000.0f
-                            : 0.0f))
-        .u16((uint16_t)(mSession.speedMax * 1000.0f))
-        .u8((uint8_t)(mSession.hrCount
-                          ? mSession.hrSum / (float)mSession.hrCount + 0.5f
-                          : 0.0f))
-        .u8((uint8_t)(mSession.hrMax + 0.5f))
-        .u16((uint16_t)g.p.ascent_m)
-        .u16((uint16_t)g.p.descent_m)
-        .u16(mLaps)
-        .write();
+    {
+        fit::FitWriter::Data d = mFit.data(L_SESSION);
+        int i;
+
+        d.u16(0)
+         .u32(toFitTime(utc))
+         .u32(toFitTime(mStartUtc))
+         .u8((uint8_t)fit::Sport::Generic)
+         .u8((uint8_t)fit::SubSport::Generic)
+         .u32(elapsed * 1000u)
+         .u32(elapsed * 1000u)
+         .u32((uint32_t)(g.p.distance_m * 100.0f))
+         .u16((uint16_t)(mSession.speedCount
+                             ? mSession.speedSum / (float)mSession.speedCount
+                                   * 1000.0f
+                             : 0.0f))
+         .u16((uint16_t)(mSession.speedMax * 1000.0f))
+         .u8((uint8_t)(mSession.hrCount
+                           ? mSession.hrSum / (float)mSession.hrCount + 0.5f
+                           : 0.0f))
+         .u8((uint8_t)(mSession.hrMax + 0.5f))
+         .u16((uint16_t)g.p.ascent_m)
+         .u16((uint16_t)g.p.descent_m)
+         .u16(mLaps);
+
+        /* One value for the whole activity per declaring measure. Written
+         * after the final lap, so an additive measure's total is exactly the
+         * sum of the increments the file already carries. */
+        for (i = 0; i < FB_SESSION_COUNT; ++i) {
+            int idx = fb_session_idx[i];
+
+            putValue(d, fb_measures[idx], fb_gen_session_value(&g, idx));
+        }
+
+        ok = d.write();
+    }
 
     ok = mFit.data(L_ACTIVITY)
         .u32(toFitTime(utc))

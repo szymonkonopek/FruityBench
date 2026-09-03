@@ -44,28 +44,53 @@ amplitude, clamped to the envelope its catalogue row declares.
 
 ## How the measures reach the file
 
-| manifest | FIT | what the docs say it becomes |
+The platform rule this app exists to exercise:
+
+| declared as | FIT destination | required? |
 |---|---|---|
-| `isTimeBased: true` (24 of them) | developer field on `record`, 1 Hz | `[[t, value], …]` |
-| `isTimeBased: false` (8 of them) | developer field on `lap`, one per lap | `[value_lap0, value_lap1, …]` |
+| `isTimeBased: true` | a value on **every record** | required |
+| " | a value on **session** | optional — and when present the companion uses it as the summary *instead of* folding the records |
+| `isTimeBased: false` | a value for the whole activity on **session** | **required** |
+| " | a value on **each lap** | optional, and it must be that lap's **increment**, never a running total |
 
-A per-lap measure is not a different series — it is the same series read once
-per lap, at the boundary. That matters for the counters: `mango_total`'s lap
-value is its reading when the lap closed, not an average over it.
+`previewAggregation` applies to time-based measures only: it says how the
+per-record values fold into the one number the preview shows. The annotated
+example manifest in `Docs/app-config-json.md` declares it on non-time-based
+entries too (`distance_to_goal`, `speed_max`), which contradicts the rule —
+this app follows the rule and leaves the key out, which is also the half of
+that disagreement that cannot be rejected on upload. Both the catalogue
+generator and `fit_check.py` refuse a manifest that breaks it. If a
+non-time-based measure had no session value the companion would fall back to
+the sum of the lap values — FruitBench never relies on that, because the rule
+says not to.
 
-The developer field's `field_name` is the manifest's measure `id` **verbatim**
-and its `units` is `unitMetric`. The file also carries the session seed as
-`file_id.serial_number`, so any recording can be reproduced from the file
-itself: `tools/host_test.sh --seconds N --seed 0x<that value>`.
+FruitBench covers all four cells, and the `where` column of
+[docs/measures.md](docs/measures.md) says which cell each measure is in:
 
-That last sentence is an assertion, not a documented fact, and it is the single
-most interesting thing this app can tell you. The SDK defines no mapping
-between `customMeasures` and FIT developer fields — the shipped example apps
-use developer field numbers that collide across apps (`4` is `hr_source` in
-Running and `lap_resting_cal` in Workout) and names that match no manifest id
-anywhere. So FruitBench asserts the obvious convention and lets the companion
-app agree or disagree visibly: whatever appears (or fails to appear) as a chart
-is the answer.
+- **24 measures** land on every record. **13 of them also carry an explicit
+  session summary**, already folded per their `previewAggregation`, so both the
+  aggregating path and the overriding path are exercised in one recording. The
+  other 11 leave the fold to the companion.
+- **8 measures** are not time-based and every one of them carries a session
+  value. **5 of those are additive** and also write per-lap increments that sum
+  to it (`melon_score`, `mango_total`, `papaya_tally`, `pomegranate_seeds`,
+  `anvil_haul`); the remaining 3 are quantities that do not add up — a
+  percentage, an index, a pair count — so they are session-only, which is the
+  case where lap values must be *absent*.
+- One deliberate oddity: `kiwi_flux` is time-based with `preview: false`, so it
+  declares no `previewAggregation`, yet it still writes a session summary. The
+  rule permits it (a session value is optional and unconditional), the recorder
+  folds it as an average, and what a companion does with it is exactly the kind
+  of thing this app exists to find out.
+
+So one session writes **57 bytes of developer fields on every record**, 14 more
+on each lap and 51 on the session message.
+
+The developer field's `field_name` is the manifest's measure `id` **verbatim**,
+its `units` is `unitMetric`, and `developer_data_index` is 0 throughout. The
+file also carries the session seed as `file_id.serial_number`, so any recording
+can be reproduced from the file itself:
+`tools/host_test.sh --seconds N --seed 0x<that value>`.
 
 ## Layout
 
@@ -74,9 +99,10 @@ app-manifest.json        generated -- the 32 customMeasures, the store metadata
 CMakeLists.txt           the watch build (Activity app, two ELFs -> one .uapp)
 src/
   fb_measures.h/.c       generated -- the catalogue as C
-  fb_gen.h/.c            the generator: waveforms, predefined metrics, a seed
+  fb_gen.h/.c            the generator: waveforms, per-lap increments, folds
   fb_fmt.h/.c            how a value is written out, shared by screen and log
-  fb_fit.hpp/.cpp        the recorder: 32 developer fields over SDK::Fit
+  fb_fit.hpp/.cpp        the recorder: developer fields on record, lap and
+                         session, over SDK::Fit
   Service.hpp/.cpp       the recorder process (owns the clock and the file)
   fb_msg.hpp             the two app-private messages, GUI <-> Service
   fb_snap.h              what the recorder tells the screen
@@ -141,20 +167,31 @@ python3 tools/fit_plot.py  docs/example-session.fit -o charts.png
 
 `fit_check.py` verifies both CRCs and the header's data size, that there is one
 `field_description` per declared measure with the right name, units and base
-type, that every time-based measure landed on `record` and every per-lap one on
-`lap` (and neither on the other), that every value is inside its declared
-envelope, that timestamps are monotonic, that `file_id` identifies the device
-as Una / UNA Watch and carries a seed, and that the session's lap count matches
-the lap messages. It prints min/avg/max per measure, which is the
+type, and then the rule itself: every non-time-based measure has the session
+value the rule makes mandatory, every time-based one is on every record, an
+explicit session summary equals the fold of the records per its
+`previewAggregation`, and the lap values of an additive measure sum to its
+session value — which is the check that catches a lap value written as a
+running total instead of an increment. It also checks that every value is
+inside its declared envelope, that timestamps are monotonic, that `file_id`
+identifies the device as Una / UNA Watch and carries a seed, and that the
+session's lap count matches the lap messages. It prints min/avg/max per measure, which is the
 quickest way to see a session is varied rather than 32 flat lines.
+
+`fit_plot.py` draws the same file as a 32-panel contact sheet -- lines for the
+per-record series, bars for the per-lap increments, the session value annotated
+and dashed across each panel that has one, and any panel `fit_check` calls a
+problem painted red. It is the fastest way to see whether a recording is worth
+charting at all.
 
 For the screen, `make -C host && ./host/fb_host --frames 90 --script "3:e,4:d"
 --dump shot.ppm` runs the real UI code on the desktop; the store previews are
 rendered that way (`tools/gen_previews.py`).
 
-Measured on this machine: **85–89 bytes per record**, so a one-hour 1 Hz session
-is about **300 KB** — 57 of those bytes are the 24 developer fields on the
-record message, 18 more ride on each lap.
+Measured on this machine: **85–89 bytes per record**, so a one-hour 1 Hz
+session is about **300 KB** — 57 of those bytes are the 24 developer fields on
+the record message, with 14 more on each lap and 51 on the single session
+message.
 
 ## Packaging for the store
 
@@ -173,12 +210,12 @@ is missing from the package, or if `min_kernel_version.py --check` or
 Two deliberate manifest decisions:
 
 - **No `previews` key**, though the screenshots do ship under
-  `assets/previews/`. The evidence here is contradictory: UOOM was accepted
-  *with* the key, PEEK's release script records an upload rejected *over* it,
-  and PEEK was then accepted without it while shipping the same folder. Since
-  a rejected upload blocks a release and a listing that has to be pointed at
-  its screenshots by hand does not, the key is left out. Putting it back is
-  one line in `tools/gen_measures.py` if the portal accepts it.
+  `assets/previews/`. The evidence is contradictory: of two packages this
+  developer has had accepted, one carried the key and the other did not, and
+  the one without it records an upload having been rejected *over* that key.
+  Since a rejected upload blocks a release and a listing that has to be
+  pointed at its screenshots by hand does not, the key is left out. Putting it
+  back is one line in `tools/gen_measures.py` if the portal accepts it.
 - **No `configFields`.** They are documented and the SDK validates them, but a
   benchmark that cannot be uploaded is worth nothing; the rate and span are
   chosen on the watch instead.
@@ -209,14 +246,10 @@ python3 tools/gen_icons.py              # 32 measure icons + 3 app icons
 To add or change a measure, edit the catalogue in `tools/gen_measures.py` and
 run both. The generator refuses to emit a catalogue that is not exhaustive over
 the core matrix, that repeats an id, that exceeds 32 measures, that gives an
-unsigned FIT field a negative envelope, or that names an icon recipe it does
-not have — the mistakes that would otherwise show up as one silently missing
-chart on a phone. Note that `fb_fit.cpp` lists its developer fields explicitly,
-with a `static_assert` on the counts: changing how many measures are
-time-based means updating those two lists.
-
-## Provenance
-
-The panel buffer, the 3×5 font renderer and the no-Designer GUI arrangement
-come from PEEK and UOOM. Two font glyphs are new: `M` and `N` were
-byte-identical there, which turned BENCHMARK into BEHCHMARK on the panel.
+unsigned FIT field a negative envelope, that names an icon recipe it does not
+have, that puts `previewAggregation` on a measure that is not time-based, or
+that leaves a non-time-based measure without a session value — the mistakes
+that would otherwise show up as one silently missing chart on a phone. The
+developer-field lists `FitWriter::defineMessage` needs as literals are
+generated too (`FB_RECORD_DEV_LIST` and friends in `src/fb_measures.h`), so
+moving a measure between messages is a catalogue edit and nothing else.

@@ -1,5 +1,4 @@
-/* fb_text.h -- the 3x5 text renderer, copied down from UOOM's uoom_text.
- * Pure C, clipped to the 240x240 panel. */
+/* fb_text.h -- the 3x5 text renderer. Pure C, clipped to the 240x240 panel. */
 #ifndef FB_TEXT_H
 #define FB_TEXT_H
 

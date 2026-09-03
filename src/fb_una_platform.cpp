@@ -1,8 +1,8 @@
 /* fb_una_platform.cpp -- fb_plat for the UNA Watch.
  *
- * Trimmed from PEEK's platform layer -- frame pump, panel push, button queue,
- * backlight -- plus the two calls this app adds: commands out to the recorder
- * and snapshots in from it.
+ * The frame pump, the panel push, the button queue and the backlight, plus
+ * the two calls this app adds on top: commands out to the recorder and
+ * snapshots in from it.
  */
 
 #include <cstring>

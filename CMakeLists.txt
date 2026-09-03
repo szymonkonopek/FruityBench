@@ -1,14 +1,14 @@
 # FruitBench -- a benchmark for the UNA Watch activity pipeline.
 #
-# Ordering follows the SDK's example apps (and PEEK): una-app.cmake sets the
-# toolchain, so it must be included before project(). The build functions read
+# Ordering follows the SDK's example apps: una-app.cmake sets the toolchain, so
+# it must be included before project(). The build functions read
 # SERVICE_SOURCES / GUI_SOURCES / *_INCLUDE_DIRS out of this scope, and
 # una_app_build_app() looks for the two ELF targets by the exact names
 # ${APP_NAME}Service.elf and ${APP_NAME}GUI.elf.
 #
-# Like PEEK and UOOM, GUI_SOURCES does NOT include UNA_SDK_SOURCES_GUI: that
-# group owns `main` and the touchgfx_* entry points and does not compile
-# without a TouchGFX Designer project. FbMain.cpp supplies main() instead. An
+# GUI_SOURCES deliberately does NOT include UNA_SDK_SOURCES_GUI: that group
+# owns `main` and the touchgfx_* entry points and does not compile without a
+# TouchGFX Designer project. FbMain.cpp supplies main() instead. An
 # Activity app still has to ship a GUI ELF -- app_merging.py only makes it
 # optional for glances -- so this is not a way to skip the GUI, only a way to
 # write one without Designer.
@@ -68,7 +68,7 @@ include($ENV{UNA_SDK}/cmake/una-sdk.cmake)   # UNA_SDK_SOURCES_*, *_INCLUDE_DIRS
 project(${APP_NAME} C CXX ASM)
 
 if(NOT DEFINED BUILD_VERSION)
-    set(BUILD_VERSION "0.1.0")
+    set(BUILD_VERSION "0.2.0")   # keep in step with tools/gen_measures.py
 endif()
 una_app_setup_version(BUILD_VERSION ${CMAKE_CURRENT_SOURCE_DIR})
 

@@ -7,7 +7,7 @@
  *                             a PPM dump), used to check the layout and to
  *                             render the store previews
  *
- * fb_ui.c is plain C and knows neither -- the same split PEEK and UOOM use.
+ * fb_ui.c is plain C and knows neither of them.
  */
 #ifndef FB_PLAT_H
 #define FB_PLAT_H

@@ -19,6 +19,17 @@
 extern "C" {
 #endif
 
+/* The fold a time-based measure's explicit session summary needs. The rule
+ * says previewAggregation tells the companion how to fold the records; when
+ * the app also writes a session value it must be that same fold, so the
+ * recorder keeps the three numbers it could possibly need. */
+typedef struct {
+    float    min;
+    float    max;
+    float    sum;
+    uint32_t count;
+} fb_stat_t;
+
 typedef struct {
     /* randomised waveform parameters, rolled once per session */
     float    amp;
@@ -31,9 +42,18 @@ typedef struct {
     uint32_t rng;          /* the measure's own stream                      */
 
     /* running state */
-    float    value;        /* current value, always inside [lo, hi]         */
+    float    value;        /* current sample, always inside [lo, hi]        */
     uint32_t hold_until;   /* SPARSE/STAIRS: activity second the hold ends  */
     float    hold_value;
+
+    fb_stat_t stat;        /* time-based only: the session fold             */
+
+    /* Additive measures (FB_ON_LAP): the increment of the lap that just
+     * closed, and the sum of every closed increment. The rule is explicit
+     * that a lap value is the increment for that segment and never a running
+     * total, and that the session value is what the increments add up to. */
+    float    lap_inc;
+    float    total;
 } fb_measure_state_t;
 
 /* The predefined metrics the manifest advertises (supportsDistance, ...).
@@ -71,18 +91,27 @@ void  fb_gen_init(fb_gen_t *g, uint32_t seed);
  * more than one in fast-forward mode). */
 void  fb_gen_step(fb_gen_t *g, uint32_t t);
 
-/* Note the lap boundary. Every measure keeps evolving across it; the only
- * thing a lap changes is which sample the per-lap measures are read at, which
- * is whatever fb_gen_value returns when the lap message is written. */
+/* Close a lap. Every additive measure draws this lap's increment here and adds
+ * it to its total, so the value written on the lap message describes that lap
+ * alone. Call this BEFORE writing the lap message, and the message then reads
+ * the increment back with fb_gen_lap_value(). */
 void  fb_gen_lap(fb_gen_t *g);
 
-/* The measure's current value. A per-lap measure is not a different series --
- * it is the same series read once per lap, at the boundary. */
+/* The measure's current value: the sample for a time-based measure, and the
+ * accumulated total for an additive one (which is what the session will
+ * report, and the only live number worth showing for it). */
 float fb_gen_value(const fb_gen_t *g, int idx);
 
-/* Value formatted for the panel: `out` gets at most `cap` chars, uppercase,
- * with a sensible number of decimals for the measure's range. */
-void  fb_gen_format(const fb_gen_t *g, int idx, char *out, int cap);
+/* The increment of the lap that fb_gen_lap() just closed. Only meaningful for
+ * a measure with FB_ON_LAP; anything else returns its session value. */
+float fb_gen_lap_value(const fb_gen_t *g, int idx);
+
+/* The value for the whole activity, which the session message must carry:
+ *   time-based        the records folded per previewAggregation
+ *   additive per-lap  the sum of the lap increments
+ *   anything else     the final sample
+ */
+float fb_gen_session_value(const fb_gen_t *g, int idx);
 
 /* A random seed from whatever entropy the caller can supply (time, tick,
  * an address); mixed so that adjacent timestamps give unrelated sessions. */

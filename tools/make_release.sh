@@ -79,7 +79,9 @@ import json, re, sys
 mf = json.load(open("app-manifest.json"))
 ids_manifest = [m["id"] for m in mf["customMeasures"]]
 src = open("src/fb_measures.c").read()
-ids_c = re.findall(r'\{ "([a-z0-9_]+)",', src)
+# The generated table puts one field per line, each tagged with its name:
+#         "banana_flex",                 /* id        */
+ids_c = re.findall(r'^\s*"([a-z0-9_]+)",\s*/\* id', src, re.M)
 if ids_manifest != ids_c:
     sys.exit("manifest and src/fb_measures.c disagree:\n  manifest: %s\n  c table : %s"
              % (ids_manifest, ids_c))
@@ -105,10 +107,10 @@ cp Resources/measures/*.png "$STAGE/assets/icons/measures/"
 
 # The screenshots go in by the folder convention from Docs/app-config-json.md
 # ("Package Content"). They are deliberately NOT referenced from a "previews"
-# key in the manifest -- see the note in README.md: UOOM was accepted with that
-# key, PEEK's script records an upload rejected over it, and PEEK was accepted
-# without it while shipping this same folder. Omitting it is the option that
-# cannot block the release.
+# key in the manifest -- see the note in README.md: of two packages this
+# developer has had accepted, one carried that key and one did not, and the
+# one without it records an upload rejected over it. Omitting it is the option
+# that cannot block the release.
 make -C host >/dev/null
 python3 tools/gen_previews.py --out "$STAGE/assets/previews"
 

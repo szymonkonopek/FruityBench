@@ -1,5 +1,5 @@
-/* fb_video.c -- panel buffer + ABGR2222 packing. FRUITBENCH needs none of UOOM's
- * palette/dither machinery, only solid colours for text. */
+/* fb_video.c -- panel buffer + ABGR2222 packing. No palette or dithering:
+ * the screen is text, sparklines and solid colours. */
 
 #include <string.h>
 

@@ -1,8 +1,8 @@
 /* fb_ui.h -- FruitBench's screen.
  *
- * One entry point, as in PEEK: the GUI process hands over its thread and the
- * loop runs until the kernel asks the app to stop (or the user exits, which
- * leaves the recorder running -- see fb_ui.c).
+ * One entry point: the GUI process hands over its thread and the loop runs
+ * until the kernel asks the app to stop -- or until the user exits, which
+ * leaves the recorder running (see fb_ui.c).
  */
 #ifndef FB_UI_H
 #define FB_UI_H

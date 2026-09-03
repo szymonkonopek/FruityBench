@@ -260,14 +260,16 @@ static void draw_row(uint8_t *fb, int row, int idx)
     }
     m = &fb_measures[idx];
 
-    /* Which measure: the generated six-character tag, plus a marker for the
-     * ones the manifest declares as per-lap rather than time-based -- those
-     * only reach the file once a lap, and the difference should be visible
-     * while recording, not only afterwards. */
+    /* Which measure: the generated six-character tag, plus where its value
+     * actually goes -- a time-based measure lands on every record and needs no
+     * marker, while the others reach the file once per lap or once for the
+     * whole activity, and that difference should be visible while recording
+     * rather than only afterwards. */
     ascii_up(buf, (int)sizeof(buf), m->short_tag);
     fb_text_draw(fb, 30, y, buf, 1, sDim);
-    if (!m->timed) {
-        fb_text_draw(fb, 30 + fb_text_width(buf, 1) + 4, y, "LAP", 1, sGrid);
+    if (!FB_IS_TIMED(m)) {
+        fb_text_draw(fb, 30 + fb_text_width(buf, 1) + 4, y,
+                     FB_HAS_LAP(m) ? "LAP" : "SES", 1, sGrid);
     }
 
     /* The value, big, then its unit at the size of an annotation. The page
@@ -299,8 +301,9 @@ static void draw_home(uint8_t *fb)
     text_c(fb, 28, "FRUITBENCH", 3, sAccent);
     text_c(fb, 50, "ACTIVITY PIPELINE BENCHMARK", 1, sDim);
 
-    snprintf(buf, sizeof(buf), "%d MEASURES  %d REC  %d LAP",
-             FB_MEASURE_COUNT, FB_TIMED_COUNT, FB_LAP_COUNT);
+    snprintf(buf, sizeof(buf), "%d MEASURES  %d REC %d LAP %d SES",
+             FB_MEASURE_COUNT, FB_RECORD_COUNT, FB_LAP_COUNT,
+             FB_SESSION_COUNT);
     text_c(fb, 62, buf, 1, sDim);
 
     snprintf(buf, sizeof(buf), "MODE  %s", kRateName[sRateIdx]);

@@ -3,39 +3,424 @@
 #include "fb_measures.h"
 
 const fb_measure_t fb_measures[FB_MEASURE_COUNT] = {
-    /*  0 */ { "banana_flex",           "Banana Flex",                               "bananas",     "BANFLE",  0, FB_T_U16, FB_WAVE_SINE,      1,            0.0f,          240.0f,    180.0f },
-    /*  1 */ { "apple_crunch",          "Apple Crunch",                              "apples",      "APPCRU",  1, FB_T_U16, FB_WAVE_WALK,      1,            0.0f,          500.0f,    300.0f },
-    /*  2 */ { "cherry_pop",            "Cherry Pop",                                "cherries",    "CHEPOP",  2, FB_T_U16, FB_WAVE_SPIKES,    1,            0.0f,          900.0f,    120.0f },
-    /*  3 */ { "grape_stream",          "Grape Stream",                              "grapes/min",  "GRASTR",  3, FB_T_U16, FB_WAVE_DRIFT,     1,           20.0f,          400.0f,    240.0f },
-    /*  4 */ { "melon_score",           "Melon Score",                               "melons",      "MELSCO",  4, FB_T_U16, FB_WAVE_WALK,      0,            0.0f,           60.0f,      0.0f },
-    /*  5 */ { "fig_index",             "Fig Index",                                 "figs",        "FIGIND",  5, FB_T_U16, FB_WAVE_RAMP,      0,            0.0f,          100.0f,      0.0f },
-    /*  6 */ { "peach_count",           "Peach Count",                               "peaches",     "PEACOU",  6, FB_T_U16, FB_WAVE_TRIANGLE,  1,            0.0f,          300.0f,    150.0f },
-    /*  7 */ { "plum_drop",             "Plum Drop",                                 "plums",       "PLUDRO",  7, FB_T_U16, FB_WAVE_DECAY,     1,            0.0f,          700.0f,     90.0f },
-    /*  8 */ { "pear_press",            "Pear Press",                                "pears",       "PEAPRE",  8, FB_T_U16, FB_WAVE_BURST,     1,            0.0f,          800.0f,    200.0f },
-    /*  9 */ { "kiwi_flux",             "Kiwi Flux",                                 "kiwis/s",     "KIWFLU",  9, FB_T_U8,  FB_WAVE_SQUARE,    1,            0.0f,          200.0f,     60.0f },
-    /* 10 */ { "mango_total",           "Mango Total",                               "mangoes",     "MANTOT", 10, FB_T_U32, FB_WAVE_COUNTER,   0,            0.0f,         4000.0f,      0.0f },
-    /* 11 */ { "papaya_tally",          "Papaya Tally",                              "papayas",     "PAPTAL", 11, FB_T_U16, FB_WAVE_NOISE,     0,            0.0f,          250.0f,      0.0f },
-    /* 12 */ { "coconut_gauge",         "Coconut Fill",                              "%",           "COCFIL", 12, FB_T_U8,  FB_WAVE_SINE,      1,            0.0f,          100.0f,    210.0f },
-    /* 13 */ { "lemon_zest",            "Lemon Zest",                                "%",           "LEMZES", 13, FB_T_U8,  FB_WAVE_WALK,      1,            0.0f,          100.0f,    330.0f },
-    /* 14 */ { "lime_twist",            "Lime Twist",                                "%",           "LIMTWI", 14, FB_T_U8,  FB_WAVE_STAIRS,    1,            0.0f,          100.0f,    400.0f },
-    /* 15 */ { "olive_level",           "Olive Level",                               "%",           "OLILEV", 15, FB_T_U8,  FB_WAVE_SAW,       1,            0.0f,          100.0f,    150.0f },
-    /* 16 */ { "avocado_ripeness",      "Avocado Ripeness",                          "%",           "AVORIP", 16, FB_T_U8,  FB_WAVE_RAMP,      0,            0.0f,          100.0f,      0.0f },
-    /* 17 */ { "pomegranate_seeds",     "Pomegranate Seeds",                         "seeds",       "POMSEE", 17, FB_T_U16, FB_WAVE_NOISE,     0,          200.0f,         1400.0f,      0.0f },
-    /* 18 */ { "brick_mass",            "Brick Mass",                                "kg",          "BRIMAS", 18, FB_T_F32, FB_WAVE_DRIFT,     1,            0.5f,           42.0f,    260.0f },
-    /* 19 */ { "anvil_haul",            "Anvil Haul",                                "km",          "ANVHAU", 19, FB_T_F32, FB_WAVE_COUNTER,   0,            0.0f,           12.0f,      0.0f },
-    /* 20 */ { "feather_lift",          "Feather Lift",                              "kN",          "FEALIF", 20, FB_T_F32, FB_WAVE_SINE,      1,            0.0f,            3.5f,    140.0f },
-    /* 21 */ { "teacup_spill",          "Teacup Spill",                              "L",           "TEASPI", 21, FB_T_F32, FB_WAVE_PULSE,     1,            0.0f,            0.9f,     70.0f },
-    /* 22 */ { "duck_bob",              "Duck Bob",                                  "ducks",       "DUCBOB", 22, FB_T_U8,  FB_WAVE_TRIANGLE,  1,            0.0f,           12.0f,     45.0f },
-    /* 23 */ { "paperclip_chain_span",  "Paperclip Chain Span Measured End To End",  "clips",       "PAPCHA", 23, FB_T_U32, FB_WAVE_COUNTER,   1,            0.0f,        90000.0f,      0.0f },
-    /* 24 */ { "sock",                  "S",                                         "pr",          "S",      24, FB_T_U8,  FB_WAVE_NOISE,     0,            0.0f,            9.0f,      0.0f },
-    /* 25 */ { "wrench_torque",         "Wrench Torque",                             "N\xc2\xb7m",  "WRETOR", 25, FB_T_F32, FB_WAVE_BURST,     1,            0.0f,           95.0f,    110.0f },
-    /* 26 */ { "pebble_delta",          "Pebble Delta",                              "pebbles",     "PEBDEL", 26, FB_T_S16, FB_WAVE_SINE,      1,         -800.0f,          800.0f,    190.0f },
-    /* 27 */ { "acorn_swarm",           "Acorn Swarm",                               "acorns",      "ACOSWA", 27, FB_T_U32, FB_WAVE_SPIKES,    1,            0.0f,      1500000.0f,    100.0f },
-    /* 28 */ { "balloon_drift",         "Balloon Drift",                             "m/s",         "BALDRI", 28, FB_T_F32, FB_WAVE_WALK,      1,          0.001f,           0.05f,    280.0f },
-    /* 29 */ { "lightbulb_hum",         "Lightbulb Hum",                             "lm",          "LIGHUM", 29, FB_T_U16, FB_WAVE_FLAT,      1,          400.0f,          400.0f,      0.0f },
-    /* 30 */ { "pinecone_total",        "Pinecone Total",                            "cones",       "PINTOT", 30, FB_T_U32, FB_WAVE_COUNTER,   1,            0.0f,        20000.0f,      0.0f },
-    /* 31 */ { "umbrella_state",        "Umbrella State",                            "state",       "UMBSTA", 31, FB_T_U8,  FB_WAVE_SPARSE,    1,            0.0f,            4.0f,      0.0f },
+    /*  0 */ {
+        "banana_flex",                 /* id        */
+        "Banana Flex",                 /* title     */
+        "bananas",                     /* unit      */
+        "BANFLE",                      /* short_tag */
+        0,                             /* field_num */
+        FB_T_U16,                      /* type      */
+        FB_WAVE_SINE,                  /* wave      */
+        FB_AGG_AVERAGE,                /* agg       */
+        FB_ON_RECORD | FB_ON_SESSION,  /* where     */
+        0.0f, 240.0f,                  /* lo, hi    */
+        180.0f                         /* period_s  */
+    },
+    /*  1 */ {
+        "apple_crunch",                /* id        */
+        "Apple Crunch",                /* title     */
+        "apples",                      /* unit      */
+        "APPCRU",                      /* short_tag */
+        1,                             /* field_num */
+        FB_T_U16,                      /* type      */
+        FB_WAVE_WALK,                  /* wave      */
+        FB_AGG_MIN,                    /* agg       */
+        FB_ON_RECORD,                  /* where     */
+        0.0f, 500.0f,                  /* lo, hi    */
+        300.0f                         /* period_s  */
+    },
+    /*  2 */ {
+        "cherry_pop",                  /* id        */
+        "Cherry Pop",                  /* title     */
+        "cherries",                    /* unit      */
+        "CHEPOP",                      /* short_tag */
+        2,                             /* field_num */
+        FB_T_U16,                      /* type      */
+        FB_WAVE_SPIKES,                /* wave      */
+        FB_AGG_MAX,                    /* agg       */
+        FB_ON_RECORD | FB_ON_SESSION,  /* where     */
+        0.0f, 900.0f,                  /* lo, hi    */
+        120.0f                         /* period_s  */
+    },
+    /*  3 */ {
+        "grape_stream",                /* id        */
+        "Grape Stream",                /* title     */
+        "grapes/min",                  /* unit      */
+        "GRASTR",                      /* short_tag */
+        3,                             /* field_num */
+        FB_T_U16,                      /* type      */
+        FB_WAVE_DRIFT,                 /* wave      */
+        FB_AGG_NONE,                   /* agg       */
+        FB_ON_RECORD,                  /* where     */
+        20.0f, 400.0f,                 /* lo, hi    */
+        240.0f                         /* period_s  */
+    },
+    /*  4 */ {
+        "melon_score",                 /* id        */
+        "Melon Score",                 /* title     */
+        "melons",                      /* unit      */
+        "MELSCO",                      /* short_tag */
+        4,                             /* field_num */
+        FB_T_U16,                      /* type      */
+        FB_WAVE_WALK,                  /* wave      */
+        FB_AGG_NONE,                   /* agg       */
+        FB_ON_SESSION | FB_ON_LAP,     /* where     */
+        0.0f, 60.0f,                   /* lo, hi    */
+        240.0f                         /* period_s  */
+    },
+    /*  5 */ {
+        "fig_index",                   /* id        */
+        "Fig Index",                   /* title     */
+        "figs",                        /* unit      */
+        "FIGIND",                      /* short_tag */
+        5,                             /* field_num */
+        FB_T_U16,                      /* type      */
+        FB_WAVE_RAMP,                  /* wave      */
+        FB_AGG_NONE,                   /* agg       */
+        FB_ON_SESSION,                 /* where     */
+        0.0f, 100.0f,                  /* lo, hi    */
+        0.0f                           /* period_s  */
+    },
+    /*  6 */ {
+        "peach_count",                 /* id        */
+        "Peach Count",                 /* title     */
+        "peaches",                     /* unit      */
+        "PEACOU",                      /* short_tag */
+        6,                             /* field_num */
+        FB_T_U16,                      /* type      */
+        FB_WAVE_TRIANGLE,              /* wave      */
+        FB_AGG_AVERAGE,                /* agg       */
+        FB_ON_RECORD,                  /* where     */
+        0.0f, 300.0f,                  /* lo, hi    */
+        150.0f                         /* period_s  */
+    },
+    /*  7 */ {
+        "plum_drop",                   /* id        */
+        "Plum Drop",                   /* title     */
+        "plums",                       /* unit      */
+        "PLUDRO",                      /* short_tag */
+        7,                             /* field_num */
+        FB_T_U16,                      /* type      */
+        FB_WAVE_DECAY,                 /* wave      */
+        FB_AGG_MIN,                    /* agg       */
+        FB_ON_RECORD | FB_ON_SESSION,  /* where     */
+        0.0f, 700.0f,                  /* lo, hi    */
+        90.0f                          /* period_s  */
+    },
+    /*  8 */ {
+        "pear_press",                  /* id        */
+        "Pear Press",                  /* title     */
+        "pears",                       /* unit      */
+        "PEAPRE",                      /* short_tag */
+        8,                             /* field_num */
+        FB_T_U16,                      /* type      */
+        FB_WAVE_BURST,                 /* wave      */
+        FB_AGG_MAX,                    /* agg       */
+        FB_ON_RECORD,                  /* where     */
+        0.0f, 800.0f,                  /* lo, hi    */
+        200.0f                         /* period_s  */
+    },
+    /*  9 */ {
+        "kiwi_flux",                   /* id        */
+        "Kiwi Flux",                   /* title     */
+        "kiwis/s",                     /* unit      */
+        "KIWFLU",                      /* short_tag */
+        9,                             /* field_num */
+        FB_T_U8,                       /* type      */
+        FB_WAVE_SQUARE,                /* wave      */
+        FB_AGG_NONE,                   /* agg       */
+        FB_ON_RECORD | FB_ON_SESSION,  /* where     */
+        0.0f, 200.0f,                  /* lo, hi    */
+        60.0f                          /* period_s  */
+    },
+    /* 10 */ {
+        "mango_total",                 /* id        */
+        "Mango Total",                 /* title     */
+        "mangoes",                     /* unit      */
+        "MANTOT",                      /* short_tag */
+        10,                            /* field_num */
+        FB_T_U32,                      /* type      */
+        FB_WAVE_COUNTER,               /* wave      */
+        FB_AGG_NONE,                   /* agg       */
+        FB_ON_SESSION | FB_ON_LAP,     /* where     */
+        0.0f, 500.0f,                  /* lo, hi    */
+        300.0f                         /* period_s  */
+    },
+    /* 11 */ {
+        "papaya_tally",                /* id        */
+        "Papaya Tally",                /* title     */
+        "papayas",                     /* unit      */
+        "PAPTAL",                      /* short_tag */
+        11,                            /* field_num */
+        FB_T_U16,                      /* type      */
+        FB_WAVE_NOISE,                 /* wave      */
+        FB_AGG_NONE,                   /* agg       */
+        FB_ON_SESSION | FB_ON_LAP,     /* where     */
+        0.0f, 250.0f,                  /* lo, hi    */
+        0.0f                           /* period_s  */
+    },
+    /* 12 */ {
+        "coconut_gauge",               /* id        */
+        "Coconut Fill",                /* title     */
+        "%",                           /* unit      */
+        "COCFIL",                      /* short_tag */
+        12,                            /* field_num */
+        FB_T_U8,                       /* type      */
+        FB_WAVE_SINE,                  /* wave      */
+        FB_AGG_AVERAGE,                /* agg       */
+        FB_ON_RECORD | FB_ON_SESSION,  /* where     */
+        0.0f, 100.0f,                  /* lo, hi    */
+        210.0f                         /* period_s  */
+    },
+    /* 13 */ {
+        "lemon_zest",                  /* id        */
+        "Lemon Zest",                  /* title     */
+        "%",                           /* unit      */
+        "LEMZES",                      /* short_tag */
+        13,                            /* field_num */
+        FB_T_U8,                       /* type      */
+        FB_WAVE_WALK,                  /* wave      */
+        FB_AGG_MIN,                    /* agg       */
+        FB_ON_RECORD,                  /* where     */
+        0.0f, 100.0f,                  /* lo, hi    */
+        330.0f                         /* period_s  */
+    },
+    /* 14 */ {
+        "lime_twist",                  /* id        */
+        "Lime Twist",                  /* title     */
+        "%",                           /* unit      */
+        "LIMTWI",                      /* short_tag */
+        14,                            /* field_num */
+        FB_T_U8,                       /* type      */
+        FB_WAVE_STAIRS,                /* wave      */
+        FB_AGG_MAX,                    /* agg       */
+        FB_ON_RECORD | FB_ON_SESSION,  /* where     */
+        0.0f, 100.0f,                  /* lo, hi    */
+        400.0f                         /* period_s  */
+    },
+    /* 15 */ {
+        "olive_level",                 /* id        */
+        "Olive Level",                 /* title     */
+        "%",                           /* unit      */
+        "OLILEV",                      /* short_tag */
+        15,                            /* field_num */
+        FB_T_U8,                       /* type      */
+        FB_WAVE_SAW,                   /* wave      */
+        FB_AGG_NONE,                   /* agg       */
+        FB_ON_RECORD,                  /* where     */
+        0.0f, 100.0f,                  /* lo, hi    */
+        150.0f                         /* period_s  */
+    },
+    /* 16 */ {
+        "avocado_ripeness",            /* id        */
+        "Avocado Ripeness",            /* title     */
+        "%",                           /* unit      */
+        "AVORIP",                      /* short_tag */
+        16,                            /* field_num */
+        FB_T_U8,                       /* type      */
+        FB_WAVE_RAMP,                  /* wave      */
+        FB_AGG_NONE,                   /* agg       */
+        FB_ON_SESSION,                 /* where     */
+        0.0f, 100.0f,                  /* lo, hi    */
+        0.0f                           /* period_s  */
+    },
+    /* 17 */ {
+        "pomegranate_seeds",           /* id        */
+        "Pomegranate Seeds",           /* title     */
+        "seeds",                       /* unit      */
+        "POMSEE",                      /* short_tag */
+        17,                            /* field_num */
+        FB_T_U16,                      /* type      */
+        FB_WAVE_NOISE,                 /* wave      */
+        FB_AGG_NONE,                   /* agg       */
+        FB_ON_SESSION | FB_ON_LAP,     /* where     */
+        200.0f, 1400.0f,               /* lo, hi    */
+        0.0f                           /* period_s  */
+    },
+    /* 18 */ {
+        "brick_mass",                  /* id        */
+        "Brick Mass",                  /* title     */
+        "kg",                          /* unit      */
+        "BRIMAS",                      /* short_tag */
+        18,                            /* field_num */
+        FB_T_F32,                      /* type      */
+        FB_WAVE_DRIFT,                 /* wave      */
+        FB_AGG_AVERAGE,                /* agg       */
+        FB_ON_RECORD | FB_ON_SESSION,  /* where     */
+        0.5f, 42.0f,                   /* lo, hi    */
+        260.0f                         /* period_s  */
+    },
+    /* 19 */ {
+        "anvil_haul",                  /* id        */
+        "Anvil Haul",                  /* title     */
+        "km",                          /* unit      */
+        "ANVHAU",                      /* short_tag */
+        19,                            /* field_num */
+        FB_T_F32,                      /* type      */
+        FB_WAVE_COUNTER,               /* wave      */
+        FB_AGG_NONE,                   /* agg       */
+        FB_ON_SESSION | FB_ON_LAP,     /* where     */
+        0.0f, 2.0f,                    /* lo, hi    */
+        300.0f                         /* period_s  */
+    },
+    /* 20 */ {
+        "feather_lift",                /* id        */
+        "Feather Lift",                /* title     */
+        "kN",                          /* unit      */
+        "FEALIF",                      /* short_tag */
+        20,                            /* field_num */
+        FB_T_F32,                      /* type      */
+        FB_WAVE_SINE,                  /* wave      */
+        FB_AGG_AVERAGE,                /* agg       */
+        FB_ON_RECORD,                  /* where     */
+        0.0f, 3.5f,                    /* lo, hi    */
+        140.0f                         /* period_s  */
+    },
+    /* 21 */ {
+        "teacup_spill",                /* id        */
+        "Teacup Spill",                /* title     */
+        "L",                           /* unit      */
+        "TEASPI",                      /* short_tag */
+        21,                            /* field_num */
+        FB_T_F32,                      /* type      */
+        FB_WAVE_PULSE,                 /* wave      */
+        FB_AGG_MIN,                    /* agg       */
+        FB_ON_RECORD | FB_ON_SESSION,  /* where     */
+        0.0f, 0.9f,                    /* lo, hi    */
+        70.0f                          /* period_s  */
+    },
+    /* 22 */ {
+        "duck_bob",                    /* id        */
+        "Duck Bob",                    /* title     */
+        "ducks",                       /* unit      */
+        "DUCBOB",                      /* short_tag */
+        22,                            /* field_num */
+        FB_T_U8,                       /* type      */
+        FB_WAVE_TRIANGLE,              /* wave      */
+        FB_AGG_MAX,                    /* agg       */
+        FB_ON_RECORD,                  /* where     */
+        0.0f, 12.0f,                   /* lo, hi    */
+        45.0f                          /* period_s  */
+    },
+    /* 23 */ {
+        "paperclip_chain_span",        /* id        */
+        "Paperclip Chain Span Measured End To End", /* title     */
+        "clips",                       /* unit      */
+        "PAPCHA",                      /* short_tag */
+        23,                            /* field_num */
+        FB_T_U32,                      /* type      */
+        FB_WAVE_COUNTER,               /* wave      */
+        FB_AGG_AVERAGE,                /* agg       */
+        FB_ON_RECORD | FB_ON_SESSION,  /* where     */
+        0.0f, 90000.0f,                /* lo, hi    */
+        0.0f                           /* period_s  */
+    },
+    /* 24 */ {
+        "sock",                        /* id        */
+        "S",                           /* title     */
+        "pr",                          /* unit      */
+        "S",                           /* short_tag */
+        24,                            /* field_num */
+        FB_T_U8,                       /* type      */
+        FB_WAVE_NOISE,                 /* wave      */
+        FB_AGG_NONE,                   /* agg       */
+        FB_ON_SESSION,                 /* where     */
+        0.0f, 9.0f,                    /* lo, hi    */
+        0.0f                           /* period_s  */
+    },
+    /* 25 */ {
+        "wrench_torque",               /* id        */
+        "Wrench Torque",               /* title     */
+        "N\xc2\xb7m",                  /* unit      */
+        "WRETOR",                      /* short_tag */
+        25,                            /* field_num */
+        FB_T_F32,                      /* type      */
+        FB_WAVE_BURST,                 /* wave      */
+        FB_AGG_AVERAGE,                /* agg       */
+        FB_ON_RECORD,                  /* where     */
+        0.0f, 95.0f,                   /* lo, hi    */
+        110.0f                         /* period_s  */
+    },
+    /* 26 */ {
+        "pebble_delta",                /* id        */
+        "Pebble Delta",                /* title     */
+        "pebbles",                     /* unit      */
+        "PEBDEL",                      /* short_tag */
+        26,                            /* field_num */
+        FB_T_S16,                      /* type      */
+        FB_WAVE_SINE,                  /* wave      */
+        FB_AGG_MIN,                    /* agg       */
+        FB_ON_RECORD | FB_ON_SESSION,  /* where     */
+        -800.0f, 800.0f,               /* lo, hi    */
+        190.0f                         /* period_s  */
+    },
+    /* 27 */ {
+        "acorn_swarm",                 /* id        */
+        "Acorn Swarm",                 /* title     */
+        "acorns",                      /* unit      */
+        "ACOSWA",                      /* short_tag */
+        27,                            /* field_num */
+        FB_T_U32,                      /* type      */
+        FB_WAVE_SPIKES,                /* wave      */
+        FB_AGG_MAX,                    /* agg       */
+        FB_ON_RECORD | FB_ON_SESSION,  /* where     */
+        0.0f, 1500000.0f,              /* lo, hi    */
+        100.0f                         /* period_s  */
+    },
+    /* 28 */ {
+        "balloon_drift",               /* id        */
+        "Balloon Drift",               /* title     */
+        "m/s",                         /* unit      */
+        "BALDRI",                      /* short_tag */
+        28,                            /* field_num */
+        FB_T_F32,                      /* type      */
+        FB_WAVE_WALK,                  /* wave      */
+        FB_AGG_AVERAGE,                /* agg       */
+        FB_ON_RECORD,                  /* where     */
+        0.001f, 0.05f,                 /* lo, hi    */
+        280.0f                         /* period_s  */
+    },
+    /* 29 */ {
+        "lightbulb_hum",               /* id        */
+        "Lightbulb Hum",               /* title     */
+        "lm",                          /* unit      */
+        "LIGHUM",                      /* short_tag */
+        29,                            /* field_num */
+        FB_T_U16,                      /* type      */
+        FB_WAVE_FLAT,                  /* wave      */
+        FB_AGG_AVERAGE,                /* agg       */
+        FB_ON_RECORD | FB_ON_SESSION,  /* where     */
+        400.0f, 400.0f,                /* lo, hi    */
+        0.0f                           /* period_s  */
+    },
+    /* 30 */ {
+        "pinecone_total",              /* id        */
+        "Pinecone Total",              /* title     */
+        "cones",                       /* unit      */
+        "PINTOT",                      /* short_tag */
+        30,                            /* field_num */
+        FB_T_U32,                      /* type      */
+        FB_WAVE_COUNTER,               /* wave      */
+        FB_AGG_MAX,                    /* agg       */
+        FB_ON_RECORD | FB_ON_SESSION,  /* where     */
+        0.0f, 20000.0f,                /* lo, hi    */
+        0.0f                           /* period_s  */
+    },
+    /* 31 */ {
+        "umbrella_state",              /* id        */
+        "Umbrella State",              /* title     */
+        "state",                       /* unit      */
+        "UMBSTA",                      /* short_tag */
+        31,                            /* field_num */
+        FB_T_U8,                       /* type      */
+        FB_WAVE_SPARSE,                /* wave      */
+        FB_AGG_AVERAGE,                /* agg       */
+        FB_ON_RECORD,                  /* where     */
+        0.0f, 4.0f,                    /* lo, hi    */
+        0.0f                           /* period_s  */
+    },
 };
 
-const uint8_t fb_timed_idx[FB_TIMED_COUNT] = { 0, 1, 2, 3, 6, 7, 8, 9, 12, 13, 14, 15, 18, 20, 21, 22, 23, 25, 26, 27, 28, 29, 30, 31 };
-const uint8_t fb_lap_idx[FB_LAP_COUNT] = { 4, 5, 10, 11, 16, 17, 19, 24 };
+const uint8_t fb_record_idx[FB_RECORD_COUNT] = { 0, 1, 2, 3, 6, 7, 8, 9, 12, 13, 14, 15, 18, 20, 21, 22, 23, 25, 26, 27, 28, 29, 30, 31 };
+const uint8_t fb_lap_idx[FB_LAP_COUNT] = { 4, 10, 11, 17, 19 };
+const uint8_t fb_session_idx[FB_SESSION_COUNT] = { 0, 2, 4, 5, 7, 9, 10, 11, 12, 14, 16, 17, 18, 19, 21, 23, 24, 26, 27, 29, 30 };

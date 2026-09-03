@@ -86,11 +86,12 @@ int main(int argc, char **argv)
             return 1;
         }
         if (t % lap == 0u && t != seconds) {
+            /* Generator first: it draws the increment the lap message writes. */
+            fb_gen_lap(&gen);
             if (!writer.addLap(gen, start + (std::time_t)t)) {
                 std::fprintf(stderr, "lap at %u failed\n", (unsigned)t);
                 return 1;
             }
-            fb_gen_lap(&gen);
         }
     }
 
@@ -108,9 +109,10 @@ int main(int argc, char **argv)
     std::printf("  bytes       : %zu (%.1f KB, %.1f B/record)\n", bytes,
                 (double)bytes / 1024.0,
                 writer.records() ? (double)bytes / writer.records() : 0.0);
-    std::printf("  dev bytes   : %u on record, %u on lap\n",
+    std::printf("  dev bytes   : %u on record, %u on lap, %u on session\n",
                 (unsigned)FbFitWriter::recordDevBytes(),
-                (unsigned)FbFitWriter::lapDevBytes());
+                (unsigned)FbFitWriter::lapDevBytes(),
+                (unsigned)FbFitWriter::sessionDevBytes());
     std::printf("  writer ok   : %s\n", (ok && writer.ok()) ? "yes" : "NO");
 
     return (ok && writer.ok()) ? 0 : 1;

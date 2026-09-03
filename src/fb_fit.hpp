@@ -69,18 +69,22 @@ public:
 
     /* Timer STOP, the final lap if one is open, session, activity, then the
      * header back-patch and file CRC. Leaves the file open -- the caller
-     * flushes and closes it, which is what registers the activity. */
-    bool finish(const fb_gen_t &g, std::time_t utc);
+     * flushes and closes it, which is what registers the activity.
+     *
+     * `g` is non-const because closing the final lap draws the last
+     * increments: without them the session totals would not match the sum of
+     * the lap values in the file. */
+    bool finish(fb_gen_t &g, std::time_t utc);
 
     bool     ok() const { return mOk && mFit.ok(); }
     uint32_t records() const { return mRecords; }
     uint16_t laps() const { return mLaps; }
 
-    /* Sum of the sizes of all developer fields on the record and lap
-     * definitions -- reported on the watch, because it is the number that
-     * decides how big an hour of this activity is. */
+    /* Sum of the sizes of all developer fields on each definition -- the
+     * record number is what decides how big an hour of this activity is. */
     static uint32_t recordDevBytes();
     static uint32_t lapDevBytes();
+    static uint32_t sessionDevBytes();
 
 private:
     struct Accum {

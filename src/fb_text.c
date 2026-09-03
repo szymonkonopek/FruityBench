@@ -1,5 +1,4 @@
-/* fb_text.c -- 3x5 font renderer. Lifted from UOOM's uoom_text.c, minus the
- * screens FRUITBENCH does not need. */
+/* fb_text.c -- 3x5 font renderer: clipped, scaled, one glyph at a time. */
 
 #include <stddef.h>       /* size_t */
 

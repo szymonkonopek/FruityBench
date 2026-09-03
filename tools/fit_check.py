@@ -9,16 +9,25 @@ on a phone:
   * both CRCs, and that the header's data size matches the bytes present
   * one field_description per declared measure, with the manifest's `id` as
     field_name, `unitMetric` as units, and the catalogue's FIT base type
-  * every time-based measure present as a developer field on `record`, and
-    every per-lap measure on `lap` -- and nothing extra
-  * every value inside the envelope its catalogue row declares
+  * every time-based measure present as a developer field on `record`, every
+    measure that is not time-based summarised on `session` (the rule makes
+    that value mandatory), every additive one on `lap` -- and nothing extra
+  * the lap increments adding up to the session value, which is what catches
+    a lap value written as a running total instead of an increment
+  * an explicit summary on a time-based measure agreeing with the
+    previewAggregation fold of that measure's own records
+  * previewAggregation declared only on time-based measures (in the manifest)
+  * every value inside the envelope its catalogue row declares -- per lap,
+    for the additive measures, whose session value is the sum of the laps
   * timestamps monotonic, the session and activity messages present, the lap
     count consistent
 
-It also prints min/avg/max per measure, which is the quickest way to see that
-a session is varied rather than 32 flat lines.
+It also prints min/avg/max per measure -- and, where the file carries one, the
+session summary beside the fold of the records it claims to summarise -- which
+is the quickest way to see that a session is varied rather than 32 flat lines.
 
     python3 tools/fit_check.py Output/test.fit [--quiet] [--json]
+    python3 tools/fit_check.py Output/test.fit --manifest app-manifest.json
 """
 
 import argparse
@@ -86,7 +95,14 @@ def decode_value(raw, base_id, endian):
         return raw
     count = len(raw) // size
     vals = struct.unpack(("<" if endian == 0 else ">") + code * count, raw)
-    vals = [None if (invalid is not None and v == invalid) else v for v in vals]
+    if invalid is None:
+        # A float field spells "invalid" as all bits set, which reads back as
+        # a NaN -- and no measure can hold a NaN, so it means the same thing
+        # as absent. Integer types with no invalid pattern are unaffected,
+        # since v != v is only ever true of a NaN.
+        vals = [None if v != v else v for v in vals]
+    else:
+        vals = [None if v == invalid else v for v in vals]
     return vals[0] if count == 1 else vals
 
 
@@ -203,6 +219,36 @@ class FitFile:
 
 
 # --------------------------------------------------------------------------- #
+# the platform rule every check below enforces one clause of
+# --------------------------------------------------------------------------- #
+#
+#   Each custom measure declared in customMeasures is written to the activity
+#   FIT file as a developer field. Declare it once with a FieldDescription
+#   message whose field_name is exactly the measure id from
+#   app-manifest.json. Use developer_data_index as described in the SDK
+#   (currently always 0) and set units to the measure's unitMetric.
+#
+#   Where the value is written depends on isTimeBased:
+#   - isTimeBased: true -- write the value on every Record message. Values on
+#     Session or Lap messages are optional; when present, the companion app
+#     uses them as the summary instead of aggregating the records.
+#   - isTimeBased: false -- write the value for the whole activity on the
+#     Session message. This is required. Optionally, also write a value on
+#     each Lap message. A lap value always describes that lap only (the
+#     increment for that segment), never a running total.
+#
+#   previewAggregation applies to time-based measures only. It tells the
+#   companion app how to fold the per-record values into a single number for
+#   the activity preview (average, min or max).
+#
+#   If a non-time-based measure has no Session value, the companion app falls
+#   back to the sum of its Lap values. Apps should not rely on this fallback.
+#
+# The catalogue says where each measure is meant to land (`dest`, and the
+# `onRecord` / `onSession` / `onLap` flags it expands to), so the checks are
+# the file against the catalogue against the rule -- not against a guess.
+
+# --------------------------------------------------------------------------- #
 # the checks
 # --------------------------------------------------------------------------- #
 
@@ -217,7 +263,232 @@ FIT_TYPE_IDS = {
 }
 
 
-def check(path, quiet=False):
+def fold_records(kind, vals):
+    """The single number a companion app folds a record series down to.
+
+    previewAggregation is the only thing that says how, and it applies to
+    time-based measures only, so this is deliberately the whole vocabulary.
+    """
+    if not vals:
+        return None
+    if kind == "average":
+        return sum(vals) / float(len(vals))
+    if kind == "min":
+        return min(vals)
+    if kind == "max":
+        return max(vals)
+    return None
+
+
+def slack_for(m, magnitude, units=1.0):
+    """How far two spellings of the same number may sit apart.
+
+    An integer developer field is rounded on the way out, so a whole unit --
+    or one per lap, where several are summed -- can legitimately vanish; a
+    float32 keeps about seven digits, so there the only honest bound is
+    relative to the magnitude involved.
+    """
+    rel = 1e-4 * abs(magnitude)
+    if m["fitType"] == "F32":
+        return max(1e-6, rel)
+    return units + rel
+
+
+def check_measure(m, found, nlaps, problems, notes):
+    """Hold one measure against the rule; return where its values landed.
+
+    `found` is the three {measure id: [values]} maps, one per message kind.
+    Problems are recorded twice on purpose: globally, because they decide the
+    exit code, and per measure, so fit_plot can paint exactly those panels.
+    """
+    mid = m["id"]
+    rec = [v for v in found["rec"].get(mid, []) if v is not None]
+    lap = [v for v in found["lap"].get(mid, []) if v is not None]
+    ses = [v for v in found["ses"].get(mid, []) if v is not None]
+    ses_val = ses[0] if ses else None
+
+    where = [k for k, hit in (("rec", bool(rec)), ("lap", bool(lap)),
+                              ("ses", ses_val is not None)) if hit]
+    info = {
+        "on": "+".join(where) or "-",
+        "session": ses_val,
+        "lap_values": lap,
+        "fold": None,
+        "fold_kind": None,
+        "count": 0,
+        "min": None,
+        "avg": None,
+        "max": None,
+        "problems": [],
+    }
+
+    def flag(msg):
+        problems.append(msg)
+        info["problems"].append(msg)
+
+    # -- is the value where the rule puts it? ----------------------------- #
+
+    # "isTimeBased: true -- write the value on every Record message."
+    if m["isTimeBased"] and not rec:
+        flag("%s is time-based but carries no values on the record message"
+             % mid)
+    # "isTimeBased: false -- write the value for the whole activity on the
+    # Session message. This is required." A companion app would fall back to
+    # the sum of the lap values, but the rule says not to rely on that, so a
+    # missing session value is a problem even when the laps are all there.
+    if not m["isTimeBased"] and ses_val is None:
+        flag("%s is not time-based and has no session value -- the rule "
+             "makes that value required (the lap-sum fallback is explicitly "
+             "not to be relied on)" % mid)
+    # Nothing extra either: a measure that is not time-based has no
+    # per-record value to write, and this app puts lap values only on the
+    # additive measures the catalogue marks onLap.
+    if not m["isTimeBased"] and rec:
+        flag("%s is not time-based but appears on %d record messages"
+             % (mid, len(rec)))
+    if m["isTimeBased"] and lap:
+        flag("%s is time-based but appears on %d lap messages, which this "
+             "app does not write" % (mid, len(lap)))
+    elif lap and not m["onLap"]:
+        # The rule allows a lap value on any measure, but the catalogue puts
+        # this one on the session alone because the quantity does not add up
+        # -- a per-lap share of a percentage would mean nothing.
+        flag("%s is declared as %s, with no lap values, but appears on %d "
+             "lap messages" % (mid, m["dest"], len(lap)))
+    if m["onLap"] and not lap:
+        flag("%s is declared with per-lap increments but no lap message "
+             "carries it" % mid)
+    if m["onSession"] and m["isTimeBased"] and ses_val is None:
+        flag("%s is declared with an explicit summary but the session "
+             "message carries no value for it" % mid)
+    if ses_val is not None and not m["onSession"]:
+        # The rule allows a summary on any time-based measure, so a file that
+        # carries one the catalogue never promised is odd, not wrong.
+        notes.append("%s carries a session value the catalogue does not "
+                     "declare" % mid)
+
+    # -- envelopes -------------------------------------------------------- #
+
+    def envelope(kind, vals, lo, hi):
+        sl = slack_for(m, hi)
+        if [v for v in vals if v < lo - sl or v > hi + sl]:
+            flag("%s on %s ranged %g..%g, outside its declared %g..%g"
+                 % (mid, kind, min(vals), max(vals), lo, hi))
+
+    envelope("record", rec, m["lo"], m["hi"])
+    envelope("lap", lap, m["lo"], m["hi"])
+    if ses_val is not None:
+        if m["dest"] == "session+lap":
+            # For an additive measure the catalogue's envelope is the range
+            # of ONE LAP'S INCREMENT, so the session value -- their sum --
+            # legitimately exceeds `hi` and is held to 0..hi*nlaps instead.
+            envelope("session", [ses_val], 0.0, m["hi"] * max(1, nlaps))
+        else:
+            envelope("session", [ses_val], m["lo"], m["hi"])
+
+    # -- the laps against the summary ------------------------------------- #
+
+    if lap and ses_val is not None:
+        total = sum(lap)
+        info["fold"] = total
+        info["fold_kind"] = "sum"
+        # "A lap value always describes that lap only (the increment for that
+        # segment), never a running total" -- so the increments have to add
+        # up to the session value. This is the check that catches a lap value
+        # written as a running total: a rising total sums to a large multiple
+        # of the session value (about n/2 times it for an even climb) rather
+        # than to the value itself.
+        tol = slack_for(m, ses_val, units=float(len(lap)))
+        if abs(total - ses_val) > tol:
+            flag("%s lap increments sum to %g but its session value is %g "
+                 "(off by %g, tolerance %g)"
+                 % (mid, total, ses_val, total - ses_val, tol))
+            # A heuristic, so it is only reported once the sum above has
+            # already failed: a genuine series of increments that happens to
+            # rise every lap is also non-decreasing, and flagging that on its
+            # own would cry wolf on honest data.
+            rising = all(lap[i] <= lap[i + 1] for i in range(len(lap) - 1))
+            near = abs(lap[-1] - ses_val) <= (slack_for(m, ses_val)
+                                              + 0.01 * abs(ses_val))
+            if len(lap) > 1 and rising and near:
+                flag("%s lap values look like a running total: they never "
+                     "fall and the last one (%g) is the session value (%g), "
+                     "so each lap is repeating the total instead of its own "
+                     "increment" % (mid, lap[-1], ses_val))
+
+    # -- the summary against the records ---------------------------------- #
+
+    agg = m["previewAggregation"]
+    if m["isTimeBased"] and rec:
+        # previewAggregation is optional: a measure the manifest keeps out of
+        # the preview declares none, and the rule asks for no aggregation to
+        # go with an optional session value. The recorder folds such a
+        # measure as the average (fb_gen_session_value), which is the
+        # documented default, so the fold is always defined for a time-based
+        # measure -- only its name is sometimes implicit.
+        kind = agg or "average"
+        folded = fold_records(kind, rec)
+        info["fold"] = folded
+        info["fold_kind"] = kind if agg else kind + "*"
+        if ses_val is not None:
+            # "when present, [Session values] are used as the summary instead
+            # of aggregating the records", so a summary that disagrees with
+            # the records is the wrong number on the phone -- and the records
+            # are still the honest answer, which is what makes this checkable.
+            tol = slack_for(m, max(abs(folded), abs(ses_val)))
+            if kind == "average":
+                # An average is accumulated across every record, so float
+                # drift grows with the count; a min or a max is one of the
+                # samples handed back unchanged.
+                tol += 1e-6 * len(rec) * abs(ses_val)
+            if abs(folded - ses_val) > tol:
+                flag("%s session summary is %g but the %s of its %d record "
+                     "values is %g (tolerance %g)"
+                     % (mid, ses_val, kind, len(rec), folded, tol))
+
+    series = rec or lap or ([ses_val] if ses_val is not None else [])
+    if series:
+        info["count"] = len(series)
+        info["min"] = min(series)
+        info["max"] = max(series)
+        info["avg"] = sum(series) / float(len(series))
+    return info
+
+
+def check_manifest(path, cat, problems, notes):
+    """previewAggregation "applies to time-based measures only".
+
+    It is the one clause that lives in app-manifest.json rather than in the
+    file, so it is checked against the manifest the file was built from.
+    """
+    try:
+        with open(path, encoding="utf-8") as fh:
+            man = json.load(fh)
+    except (IOError, OSError, ValueError) as exc:
+        problems.append("cannot read the manifest %s: %s" % (path, exc))
+        return
+    entries = man.get("customMeasures") or []
+    if not entries:
+        problems.append("%s declares no customMeasures" % path)
+    # Without this the clause below could pass on a manifest that simply does
+    # not mention the measures the file was written from.
+    ids = set(e.get("id") for e in entries)
+    missing = [m["id"] for m in cat["measures"] if m["id"] not in ids]
+    if missing:
+        problems.append("manifest declares no customMeasure for %s"
+                        % ", ".join(missing))
+    for e in entries:
+        if not e.get("isTimeBased") and "previewAggregation" in e:
+            problems.append("manifest: %s is not time-based but declares "
+                            "previewAggregation %r -- the attribute applies "
+                            "to time-based measures only"
+                            % (e.get("id"), e["previewAggregation"]))
+    notes.append("manifest: %d customMeasures, %d of them time-based"
+                 % (len(entries),
+                    len([e for e in entries if e.get("isTimeBased")])))
+
+
+def check(path, quiet=False, manifest=None):
     cat = load_catalogue()
     by_id = {m["id"]: m for m in cat["measures"]}
     fit = FitFile(path)
@@ -278,49 +549,39 @@ def check(path, quiet=False):
                     problems.append("developer field %d has no description"
                                     % fnum)
                     continue
+                if dev_idx != 0:
+                    problems.append("field %s is written with "
+                                    "developer_data_index %d, and the rule "
+                                    "says to use the SDK's, currently 0"
+                                    % (d["name"], dev_idx))
                 val = decode_value(raw, d["base_type"], 0)
                 out.setdefault(d["name"], []).append(val)
         return out, [v for v, _ in fit.of(global_num)]
 
     rec_vals, records = collect(MESG_RECORD)
     lap_vals, laps = collect(MESG_LAP)
+    # The session message carries the summaries the rule requires, so it has
+    # to be decoded like any other; collecting only record and lap developer
+    # fields is what made those summaries unverifiable before.
+    ses_vals, sessions = collect(MESG_SESSION)
+    if len(sessions) > 1:
+        problems.append("%d session messages, expected 1 -- a summary would "
+                        "then have to be read per session" % len(sessions))
 
+    found = {"rec": rec_vals, "lap": lap_vals, "ses": ses_vals}
+    for name in sorted(set(rec_vals) | set(lap_vals) | set(ses_vals)):
+        if name not in by_id:
+            problems.append("developer field %r is not in the catalogue"
+                            % name)
+
+    measures = {}
     for m in cat["measures"]:
-        where = rec_vals if m["isTimeBased"] else lap_vals
-        other = lap_vals if m["isTimeBased"] else rec_vals
-        kind = "record" if m["isTimeBased"] else "lap"
+        measures[m["id"]] = check_measure(m, found, len(laps), problems,
+                                          notes)
 
-        if m["id"] not in where:
-            problems.append("%s (isTimeBased=%s) carries no values on the %s "
-                            "message" % (m["id"], m["isTimeBased"], kind))
-        if m["id"] in other:
-            problems.append("%s appears on the wrong message as well"
-                            % m["id"])
-
-    # -- envelopes -------------------------------------------------------- #
-    stats = {}
-    for name, vals in list(rec_vals.items()) + list(lap_vals.items()):
-        m = by_id.get(name)
-        clean = [v for v in vals if v is not None]
-        if not clean:
-            problems.append("%s has no valid values" % name)
-            continue
-        lo, hi = min(clean), max(clean)
-        stats[name] = {
-            "count": len(clean),
-            "min": lo,
-            "max": hi,
-            "avg": sum(clean) / len(clean),
-        }
-        if m is None:
-            problems.append("developer field %r is not in the catalogue" % name)
-            continue
-        # Integer fields are rounded on the way out, so allow a whole unit of
-        # slack at each end rather than pretending the cast was exact.
-        slack = 1.0 if m["fitType"] != "F32" else 1e-3
-        if lo < m["lo"] - slack or hi > m["hi"] + slack:
-            problems.append("%s ranged %g..%g, outside its declared %g..%g"
-                            % (name, lo, hi, m["lo"], m["hi"]))
+    # -- the one clause that lives in the manifest ------------------------ #
+    check_manifest(manifest or os.path.join(ROOT, "app-manifest.json"),
+                   cat, problems, notes)
 
     # -- file identity ---------------------------------------------------- #
     file_ids = fit.of(MESG_FILE_ID)
@@ -380,12 +641,19 @@ def check(path, quiet=False):
         "bytes_per_record": (len(fit.blob) / len(records)) if records else 0,
         "problems": problems,
         "notes": notes,
-        "stats": stats,
+        "measures": measures,
     }
 
     if not quiet:
         report(summary, cat)
     return summary
+
+
+def as_number(v):
+    """A cell in the table, for a value that is allowed to be absent."""
+    if v is None:
+        return "-"
+    return v if isinstance(v, str) else "%.4g" % v
 
 
 def report(s, cat):
@@ -398,16 +666,30 @@ def report(s, cat):
     for n in s["notes"]:
         print("%-16s: %s" % ("", n))
     print()
-    print("%-24s %-6s %5s %12s %12s %12s  %s"
-          % ("measure", "on", "n", "min", "avg", "max", "unit"))
+    # `on` is where the values actually are, not where they were meant to be:
+    # reading it against the catalogue's `where` column is the fastest way to
+    # see a measure that landed on the wrong message.
+    print("on = messages the values were found on.  summary = the value on "
+          "the session")
+    print("message.  fold = the previewAggregation fold of the records "
+          "(* = implicit average)")
+    print("or, for an additive measure, the sum of its lap increments.  "
+          "! = has a problem.")
+    print()
+    print(" %-23s %-11s %5s %11s %11s %11s %11s %11s %-9s %s"
+          % ("measure", "on", "n", "min", "avg", "max", "summary", "fold",
+             "via", "unit"))
     for m in cat["measures"]:
-        st = s["stats"].get(m["id"])
-        if not st:
-            print("%-24s %-6s %5s" % (m["id"], "-", "MISSING"))
+        st = s["measures"].get(m["id"], {})
+        mark = "!" if st.get("problems") else " "
+        if not st.get("count"):
+            print("%s%-23s %-11s %5s" % (mark, m["id"], st.get("on", "-"),
+                                         "MISSING"))
             continue
-        print("%-24s %-6s %5d %12.4g %12.4g %12.4g  %s"
-              % (m["id"], "rec" if m["isTimeBased"] else "lap", st["count"],
-                 st["min"], st["avg"], st["max"], m["unitMetric"]))
+        print("%s%-23s %-11s %5d %11.4g %11.4g %11.4g %11s %11s %-9s %s"
+              % (mark, m["id"], st["on"], st["count"], st["min"], st["avg"],
+                 st["max"], as_number(st["session"]), as_number(st["fold"]),
+                 st["fold_kind"] or "", m["unitMetric"]))
     print()
     if s["problems"]:
         print("PROBLEMS (%d):" % len(s["problems"]))
@@ -415,7 +697,8 @@ def report(s, cat):
             print("  - %s" % p)
     else:
         print("RESULT          : VALID -- every declared measure present, "
-              "typed and inside its envelope")
+              "typed, summarised where the rule requires it, and inside "
+              "its envelope")
 
 
 def main():
@@ -424,9 +707,12 @@ def main():
     ap.add_argument("fit", help="the .fit file to check")
     ap.add_argument("--quiet", action="store_true", help="only the exit code")
     ap.add_argument("--json", action="store_true", help="machine-readable summary")
+    ap.add_argument("--manifest", help="app-manifest.json to hold the "
+                                       "previewAggregation rule against")
     args = ap.parse_args()
 
-    s = check(args.fit, quiet=args.quiet or args.json)
+    s = check(args.fit, quiet=args.quiet or args.json,
+              manifest=args.manifest)
     if args.json:
         print(json.dumps(s, indent=2, default=str))
     return 1 if s["problems"] else 0
